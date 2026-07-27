@@ -51,8 +51,8 @@ export function WikiDocReader({ value, onOpenDoc, containerRef }: Props) {
       }}
     >
       <Plate editor={editor} readOnly>
-        <EditorContainer>
-          <Editor variant="none" className="px-0" readOnly />
+        <EditorContainer className="overflow-visible">
+          <Editor variant="none" className="overflow-visible px-0" readOnly />
         </EditorContainer>
       </Plate>
     </div>

@@ -12,8 +12,7 @@
  * 서재 한가운데 브라우저 창이 하나 열린 꼴이 된다.
  */
 import { useRef, useState } from 'react';
-import { ImagePlus, Loader2, Plus, Trash2, X } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { ImagePlus, Loader2, Plus, X } from 'lucide-react';
 import { notify } from '@/lib/notify';
 import { compressInfoboxPhoto } from '@/lib/wiki3/infoboxPhoto';
 import type { WikiInfobox } from '@/lib/wiki3/store';
@@ -22,12 +21,11 @@ const C = {
   ink: '#2b2620',
   sub: '#6f6350',
   muted: '#8d8271',
-  line: 'rgba(60,47,24,.18)',
   lineSoft: 'rgba(60,47,24,.10)',
-  paper: '#faf6ee',
-  head: 'rgba(60,47,24,.06)',
   green: '#305f4c',
 };
+/** 본문 제목과 같은 명조 — 항목 이름을 표 머리가 아니라 '적어둔 말'로 보이게 한다. */
+const SERIF = "'Nanum Myeongjo', 'Noto Serif KR', 'Gowun Batang', serif";
 
 interface Props {
   value: WikiInfobox;
@@ -68,74 +66,55 @@ export function WikiInfoboxCard({ value, title, tint, editing, onChange }: Props
   const empty = !value.photo && rows.every((r) => !r.k.trim() && !r.v.trim());
   if (!editing && empty) return null;
 
-  /* 종이에 인쇄된 표처럼 — 카드가 아니다.
-     그림자와 흰 면을 두르면 종이 위에 붙인 스티커가 되어 본문과 겉돈다.
-     그림자를 걷고, 바탕은 종이보다 아주 조금만 눌러(3%) 인쇄된 자리처럼 두고,
-     테두리는 실선 한 겹만 남긴다. 위쪽 책 색 띠는 2px 로 얇게 — 뚜껑 노릇만 하고
-     스스로 눈에 띄지는 않게. */
+  /* 겉모습 — 상자를 두르지 않는다.
+     테두리·모서리·바탕을 가지면 종이 위에 붙인 위젯이 되어, 이 방에서 유일하게
+     '앱 부품' 처럼 생긴 물건이 됐다. 종이 자체를 바탕으로 쓰고, 위아래를 이 방이
+     이미 쓰는 선으로 닫는다 — 문서 머리 아래에 그어진 그 겹줄(3px double)이다.
+     같은 선을 쓰면 설명하지 않아도 같은 종이의 물건으로 읽힌다.
+     항목 이름은 본문 제목과 같은 명조 — 표가 아니라 '적어둔 것' 으로 보이게. */
   return (
-    <aside
-      className="overflow-hidden rounded-[8px]"
-      style={{ background: 'rgba(60,47,24,.032)', border: `1px solid ${C.line}` }}
-      aria-label={`${title} 요약`}
-    >
-      {/* 머리엔 문서 제목을 적지 않는다 — 종이 맨 위에 이미 크게 있고,
-          두 제목이 나란히 서면 둘 중 하나가 잘못 놓인 것처럼 보인다.
-          어느 책의 문서인지는 색으로 남긴다. */}
-      <div aria-hidden style={{ height: 2, background: tint || C.green, opacity: 0.75 }} />
+    <aside aria-label={`${title} 요약`}>
+      {/* 위 겹줄 — 책 색은 아주 옅게만 섞는다(어느 책인지 남기되 띠로 튀지 않게) */}
+      <div aria-hidden style={{ borderTop: `3px double ${tint ? `${tint}55` : 'rgba(60,47,24,.3)'}` }} />
 
-      {/* 사진 */}
+      {/* 사진 — 종이 위에 그대로 놓인 인쇄물. 테두리도 모서리도 없다. */}
       {value.photo ? (
-        /* 사진은 상자 폭을 꽉 채운다 — 안쪽에 여백을 두고 다시 테두리를 두르면
-           액자 속 액자가 되어 상자가 두꺼워 보인다. */
-        <div className="relative">
-          <img src={value.photo} alt="" className="block w-full object-cover" style={{ borderBottom: `1px solid ${C.lineSoft}` }} />
+        <div className="relative pt-3">
+          <img src={value.photo} alt="" className="block w-full" />
           {editing && (
             <button
               type="button" onClick={() => onChange({ ...value, photo: undefined })}
               aria-label="사진 빼기"
-              className="absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full text-white transition-colors"
-              style={{ background: 'rgba(30,24,16,.6)' }}
+              className="absolute right-1.5 top-4 flex h-6 w-6 items-center justify-center rounded-full text-white transition-colors"
+              style={{ background: 'rgba(30,24,16,.55)' }}
             >
               <X className="h-3.5 w-3.5" />
             </button>
           )}
         </div>
-      ) : editing ? (
-        <div className="p-2.5">
-          <button
-            type="button" onClick={() => fileRef.current?.click()} disabled={busy}
-            className="flex w-full items-center justify-center gap-1.5 rounded-[8px] py-4 text-[12.5px] font-semibold transition-colors"
-            style={{ border: `1px dashed ${C.line}`, color: C.sub, background: 'transparent' }}
-          >
-            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImagePlus className="h-4 w-4" />}
-            {busy ? '넣는 중…' : '사진 넣기'}
-          </button>
-          <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => void pickPhoto(e.target.files?.[0])} />
-        </div>
       ) : null}
 
-      {/* 항목/값 */}
+      {/* 항목/값 — 줄 사이 실선 하나. 칸을 그리지 않는다. */}
       <div>
         {rows.map((r, i) => (
           <div
             key={i}
-            className="grid items-start gap-2 px-3.5 py-2"
-            style={{ gridTemplateColumns: '72px minmax(0,1fr)', borderTop: i === 0 ? 'none' : `1px solid ${C.lineSoft}` }}
+            className="grid items-start gap-2.5 py-[7px]"
+            style={{ gridTemplateColumns: '62px minmax(0,1fr)', borderTop: i === 0 ? 'none' : `1px solid ${C.lineSoft}` }}
           >
             {editing ? (
               <>
                 <input
                   value={r.k} onChange={(e) => setRow(i, { k: e.target.value })}
                   placeholder="항목" aria-label={`${i + 1}번째 항목 이름`}
-                  className="w-full bg-transparent text-[12px] font-bold outline-none"
-                  style={{ color: C.sub }}
+                  className="w-full bg-transparent text-[12px] outline-none"
+                  style={{ color: C.sub, fontFamily: SERIF, fontWeight: 700 }}
                 />
                 <div className="flex items-start gap-1">
                   <textarea
                     value={r.v} onChange={(e) => setRow(i, { v: e.target.value })}
                     placeholder="값" aria-label={`${i + 1}번째 값`} rows={1}
-                    className="min-h-[20px] w-full resize-none bg-transparent text-[12.5px] leading-[1.5] outline-none"
+                    className="min-h-[20px] w-full resize-none bg-transparent text-[12.5px] leading-[1.55] outline-none"
                     style={{ color: C.ink }}
                     onInput={(e) => { const t = e.currentTarget; t.style.height = 'auto'; t.style.height = `${t.scrollHeight}px`; }}
                   />
@@ -150,37 +129,40 @@ export function WikiInfoboxCard({ value, title, tint, editing, onChange }: Props
               </>
             ) : (
               <>
-                <span className="text-[12px] font-bold leading-[1.5]" style={{ color: C.sub }}>{r.k}</span>
-                <span className="whitespace-pre-wrap break-words text-[12.5px] leading-[1.5]" style={{ color: C.ink }}>{r.v}</span>
+                <span className="text-[12px] leading-[1.55]" style={{ color: C.sub, fontFamily: SERIF, fontWeight: 700 }}>{r.k}</span>
+                <span className="whitespace-pre-wrap break-words text-[12.5px] leading-[1.55]" style={{ color: C.ink }}>{r.v}</span>
               </>
             )}
           </div>
         ))}
       </div>
 
+      {/* 아래 겹줄 — 위와 짝을 맞춰 상자를 닫는다 */}
+      <div aria-hidden style={{ borderTop: `3px double ${tint ? `${tint}55` : 'rgba(60,47,24,.3)'}` }} />
+
+      {/* 고칠 때만 뜨는 줄. 점선 버튼과 '상자 지우기' 는 걷었다 —
+          점선은 이 방 어디에도 없는 무늬였고, 지우기는 편집 도구줄의 '인포박스'
+          버튼이 이미 하는 일이라 같은 일이 두 군데 있었다. */}
       {editing && (
-        <div className="flex items-center gap-1 px-2.5 py-2" style={{ borderTop: `1px solid ${C.lineSoft}` }}>
+        <div className="flex items-center gap-3 pt-1.5" style={{ fontSize: 12 }}>
           <button
             type="button" onClick={addRow}
-            className="flex items-center gap-1 rounded-md px-2 py-1 text-[12px] font-semibold transition-colors hover:bg-[rgba(48,95,76,.08)]"
+            className="flex items-center gap-1 font-semibold transition-opacity hover:opacity-70"
             style={{ color: C.green }}
           >
-            <Plus className="h-3.5 w-3.5" /> 항목 추가
+            <Plus className="h-3.5 w-3.5" /> 항목
           </button>
-          <span className="flex-1" />
-          <button
-            type="button"
-            onClick={() => {
-              /* 내용이 있을 때만 묻는다 — 빈 상자를 지우는 데 확인을 받으면
-                 '잘못 눌렀나' 하고 한 번 더 생각하게 만들 뿐이다. */
-              if (!empty && !window.confirm('인포박스를 지울까요?\n적어둔 항목과 사진이 함께 사라집니다.')) return;
-              onChange(undefined);
-            }}
-            className={cn('flex items-center gap-1 rounded-md px-2 py-1 text-[12px] font-semibold transition-colors hover:bg-rose-50')}
-            style={{ color: '#a2503f' }}
-          >
-            <Trash2 className="h-3.5 w-3.5" /> 상자 지우기
-          </button>
+          {!value.photo && (
+            <button
+              type="button" onClick={() => fileRef.current?.click()} disabled={busy}
+              className="flex items-center gap-1 font-semibold transition-opacity hover:opacity-70"
+              style={{ color: C.green }}
+            >
+              {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ImagePlus className="h-3.5 w-3.5" />}
+              {busy ? '넣는 중…' : '사진'}
+            </button>
+          )}
+          <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => void pickPhoto(e.target.files?.[0])} />
         </div>
       )}
     </aside>

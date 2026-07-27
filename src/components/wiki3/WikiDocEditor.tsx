@@ -97,11 +97,11 @@ export function WikiDocEditor({ initialValue, onChange, onOpenDoc, onLinkRequest
       }}
     >
       <Plate editor={editor} onChange={({ value }) => onChange(value as Value)}>
-        <EditorContainer>
+        <EditorContainer className="overflow-visible">
           <Editor
             variant="none"
             placeholder={placeholder ?? '무엇이든 적어보세요…  ( "/" 눌러 표·이미지·목록 삽입 · 텍스트 드래그로 문서 연결 )'}
-            className="min-h-[46vh] px-0"
+            className="min-h-[46vh] overflow-visible px-0"
           />
         </EditorContainer>
       </Plate>
