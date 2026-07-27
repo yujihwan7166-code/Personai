@@ -23,6 +23,8 @@ const C = {
   muted: '#8d8271',
   lineSoft: 'rgba(60,47,24,.10)',
   paper: '#fdfaf2',
+  /** 항목 칸에 까는 띠 — 종이를 4%만 누른 것. 선을 안 긋고도 표로 읽히게 한다. */
+  band: 'rgba(60,47,24,.042)',
   green: '#305f4c',
 };
 /** 본문 제목과 같은 명조 — 항목 이름을 표 머리가 아니라 '적어둔 말'로 보이게 한다. */
@@ -85,7 +87,7 @@ export function WikiInfoboxCard({ value, title, tint, editing, onChange }: Props
           통째로 바뀌고 아래 항목들이 밀려 내려갔다. 자리를 미리 잡아두면
           '여기 사진이 온다' 가 보이고, 넣어도 흔들리지 않는다. */}
       {value.photo ? (
-        <div className="relative pt-3">
+        <div className="relative pb-3 pt-3">
           <img src={value.photo} alt="" className="block w-full" />
           {editing && (
             <button
@@ -109,45 +111,51 @@ export function WikiInfoboxCard({ value, title, tint, editing, onChange }: Props
         </button>
       ) : null}
 
-      {/* 항목/값 — 줄 사이 실선 하나. 칸을 그리지 않는다. */}
+      {/* 항목/값.
+          위키백과 인포박스가 '표'로 읽히는 건 테두리가 아니라 항목 칸에 깔린 옅은 띠
+          덕분이다. 그건 가져오고, 회색 상자·제목 머리·굵은 격자는 버린다 — 이 종이엔
+          안 맞는다. 띠는 종이를 4% 만 누른 것이라 인쇄된 음영처럼 보인다. */}
       <div>
         {rows.map((r, i) => (
           <div
             key={i}
-            className="grid items-start gap-2.5 py-[7px]"
-            style={{ gridTemplateColumns: '62px minmax(0,1fr)', borderTop: i === 0 ? 'none' : `1px solid ${C.lineSoft}` }}
+            className="grid items-stretch"
+            style={{ gridTemplateColumns: '78px minmax(0,1fr)', borderTop: i === 0 ? 'none' : `1px solid ${C.lineSoft}` }}
           >
-            {editing ? (
-              <>
+            <div className="px-2.5 py-[9px]" style={{ background: C.band }}>
+              {editing ? (
                 <input
                   value={r.k} onChange={(e) => setRow(i, { k: e.target.value })}
                   placeholder="항목" aria-label={`${i + 1}번째 항목 이름`}
-                  className="w-full bg-transparent text-[12px] outline-none"
+                  className="w-full bg-transparent text-[12.5px] leading-[1.5] outline-none"
                   style={{ color: C.sub, fontFamily: SERIF, fontWeight: 700 }}
                 />
-                <div className="flex items-start gap-1">
+              ) : (
+                <span className="block break-words text-[12.5px] leading-[1.5]" style={{ color: C.sub, fontFamily: SERIF, fontWeight: 700 }}>{r.k}</span>
+              )}
+            </div>
+            <div className="flex items-start gap-1 px-2.5 py-[9px]">
+              {editing ? (
+                <>
                   <textarea
                     value={r.v} onChange={(e) => setRow(i, { v: e.target.value })}
                     placeholder="값" aria-label={`${i + 1}번째 값`} rows={1}
-                    className="min-h-[20px] w-full resize-none bg-transparent text-[12.5px] leading-[1.55] outline-none"
+                    className="min-h-[20px] w-full resize-none bg-transparent text-[13.5px] leading-[1.5] outline-none"
                     style={{ color: C.ink }}
                     onInput={(e) => { const t = e.currentTarget; t.style.height = 'auto'; t.style.height = `${t.scrollHeight}px`; }}
                   />
                   <button
                     type="button" onClick={() => delRow(i)} aria-label={`${r.k || '이 줄'} 빼기`}
-                    className="mt-[1px] shrink-0 rounded p-0.5 transition-colors hover:bg-[rgba(60,47,24,.08)]"
+                    className="mt-[2px] shrink-0 rounded p-0.5 transition-colors hover:bg-[rgba(60,47,24,.08)]"
                     style={{ color: C.muted }}
                   >
                     <X className="h-3 w-3" />
                   </button>
-                </div>
-              </>
-            ) : (
-              <>
-                <span className="text-[12px] leading-[1.55]" style={{ color: C.sub, fontFamily: SERIF, fontWeight: 700 }}>{r.k}</span>
-                <span className="whitespace-pre-wrap break-words text-[12.5px] leading-[1.55]" style={{ color: C.ink }}>{r.v}</span>
-              </>
-            )}
+                </>
+              ) : (
+                <span className="whitespace-pre-wrap break-words text-[13.5px] leading-[1.5]" style={{ color: C.ink }}>{r.v}</span>
+              )}
+            </div>
           </div>
         ))}
       </div>
