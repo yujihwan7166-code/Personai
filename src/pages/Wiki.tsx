@@ -7,7 +7,7 @@
  * 기능은 전부 실물: Plate 편집·읽기, 드래그 링크, 인포박스 편집, 백링크 문맥 발췌, mywiki.v4.
  */
 import { Suspense, lazy, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { Check, ChevronDown, Pencil, Plus, Search, Star, Trash2, X } from 'lucide-react';
+import { Check, ChevronDown, PanelRight, Pencil, Plus, Search, Star, Trash2, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { newId } from '@/lib/idGenerator';
 import type { Value } from 'platejs';
@@ -19,6 +19,8 @@ import {
 import { childrenOf, ancestorsOf, deleteWithPromotion, isDescendant } from '@/lib/wiki3/tree';
 import { BUILTIN_TEMPLATES, loadTemplates, saveTemplates, type WikiTemplate } from '@/lib/wiki3/templates';
 import type { WikiEditorApi } from '@/components/wiki3/WikiDocEditor';
+import { WikiInfoboxCard } from '@/components/wiki3/WikiInfobox';
+import { notify } from '@/lib/notify';
 
 const WikiDocEditor = lazy(() => import('@/components/wiki3/WikiDocEditor').then((m) => ({ default: m.WikiDocEditor })));
 const WikiDocReader = lazy(() => import('@/components/wiki3/WikiDocReader').then((m) => ({ default: m.WikiDocReader })));
@@ -372,7 +374,17 @@ export default function Wiki() {
   const active = docId ? docs.find((d) => d.id === docId) ?? null : null;
   const bookOf = useMemo(() => new Map(allBooks.map((b) => [b.id, b])), [allBooks]);
 
-  useEffect(() => { saveWiki(store); }, [store]);
+  /* 저장이 실패하면(브라우저 저장 칸이 꽉 참) 한 번만 알린다.
+     인포박스 사진이 들어오면서 실제로 넘칠 수 있게 됐는데, 조용히 실패하면
+     계속 쓰다가 방을 나가는 순간 그동안 쓴 게 통째로 사라진다. */
+  const quotaWarned = useRef(false);
+  useEffect(() => {
+    const ok = saveWiki(store);
+    if (ok) { quotaWarned.current = false; return; }
+    if (quotaWarned.current) return;
+    quotaWarned.current = true;
+    notify.error('저장 공간이 꽉 찼어요', { description: '인포박스 사진을 줄이거나 안 쓰는 책을 지워 주세요 — 지금 고친 내용은 아직 저장되지 않았습니다.' });
+  }, [store]);
 
   /* Esc — 문서 → 책 → 서재 (시안 문법). 입력·에디터·다이얼로그 안에서는 무시 */
   useEffect(() => {
@@ -1232,8 +1244,13 @@ export default function Wiki() {
             /* 목차 열은 '있을 때만' 만들면 본문 폭·위치가 통째로 흔들린다
                (한 줄 길이까지 바뀌어 읽는 리듬이 끊긴다).
                흔들리는 경우가 둘이었다 — ①제목 2개 미만인 문서 ②편집 모드.
-               그래서 열은 언제나 자리를 잡아두고 내용만 들고 난다. 읽다가 편집을 눌러도 본문은 제자리. */
-            <div className="grid gap-5" style={{ gridTemplateColumns: '140px minmax(0,1fr)', alignItems: 'start' }}>
+               그래서 열은 언제나 자리를 잡아두고 내용만 들고 난다. 읽다가 편집을 눌러도 본문은 제자리.
+
+               반면 인포박스가 있는 문서에만 세 번째 칸이 생긴다. 목차는 문서마다 있고
+               없고가 갈리는 부수물이라 그 때문에 본문 폭이 달라지면 안 됐지만, 인포박스는
+               그 문서가 가진 내용이다 — 큰 사진이 들어간 문서가 다른 문서와 폭이 같아야 할
+               이유는 없다. (240px 를 늘 비워두면 인포박스 없는 문서 전부가 그만큼 좁아진다) */
+            <div className="grid gap-5" style={{ gridTemplateColumns: active.infobox ? '140px minmax(0,1fr) 240px' : '140px minmax(0,1fr)', alignItems: 'start' }}>
               {/* 좌 — 목차 (읽기 모드, 제목 2개↑). 그 밖에는 빈 열로 자리만 지킨다 */}
               {mode === 'read' && toc.length >= 2 ? (
                 /* 목차 — 줄마다 끊긴 밑줄만 있어서 허전했다.
@@ -1273,10 +1290,28 @@ export default function Wiki() {
                 patchDoc={patchDoc} removeDoc={removeDoc} onBodyChange={onBodyChange}
                 openDoc={openDoc} createDoc={createDoc} setPicker={setPicker} applyTemplate={applyTemplate} tplStamp={tplStamp}
               />
+
+              {/* 우 — 인포박스. 읽는 동안 따라오게 sticky */}
+              {active.infobox && (
+                <div className="sticky top-4">
+                  <WikiInfoboxCard
+                    value={active.infobox} title={active.title} editing={mode === 'edit'}
+                    onChange={(next) => patchDoc(active.id, { infobox: next })}
+                  />
+                </div>
+              )}
             </div>
             ) : (
-            /* 모바일/태블릿 — 1열. isWide 분기로 한쪽만 마운트 */
+            /* 모바일/태블릿 — 1열. 인포박스는 본문 위로 올라간다(위키백과 모바일과 같다) */
             <div>
+              {active.infobox && (
+                <div className="mb-4">
+                  <WikiInfoboxCard
+                    value={active.infobox} title={active.title} editing={mode === 'edit'}
+                    onChange={(next) => patchDoc(active.id, { infobox: next })}
+                  />
+                </div>
+              )}
               <DocMain
                 active={active} book={book} bookOf={bookOf} bookDocs={bookDocs}
                 mode={mode} setMode={setMode} toc={toc} kids={kids} backlinks={backlinks}
@@ -2176,6 +2211,31 @@ function DocMain({
                 bookDocs={bookDocs} doc={active} book={book}
                 onPick={(parent) => patchDoc(active.id, { parent })}
               />
+              {/* 인포박스 — 필요한 문서에만. 넣기 전엔 조용한 버튼이고, 넣은 뒤엔
+                  들어와 있다는 표시가 된다(다시 누르면 상자 안에서 지운다는 뜻이 아니라
+                  여기서 바로 지운다 — 상자가 화면 밖에 있을 수도 있어서). */}
+              <button
+                type="button"
+                onClick={() => {
+                  if (active.infobox) {
+                    const has = !!active.infobox.photo || active.infobox.rows.some((r) => r.k.trim() || r.v.trim());
+                    if (has && !window.confirm('인포박스를 지울까요?\n적어둔 항목과 사진이 함께 사라집니다.')) return;
+                    patchDoc(active.id, { infobox: undefined });
+                  } else {
+                    /* 빈 줄 셋으로 시작한다 — 완전히 빈 상자는 무엇을 적는 곳인지
+                       알려주지 못하고, 미리 채워 두면 안 맞는 문서에서 지우는 일이 된다. */
+                    patchDoc(active.id, { infobox: { rows: [{ k: '', v: '' }, { k: '', v: '' }, { k: '', v: '' }] } });
+                  }
+                }}
+                aria-pressed={!!active.infobox}
+                title={active.infobox ? '인포박스 지우기' : '문서 옆에 요약 상자(사진 · 항목/값)를 세워요'}
+                className="flex h-[30px] items-center gap-1.5 rounded-lg px-2.5 text-[12px] font-semibold transition-colors"
+                style={active.infobox
+                  ? { background: 'rgba(48,95,76,.12)', color: C.green, boxShadow: 'inset 0 0 0 1px rgba(48,95,76,.22)' }
+                  : { color: C.sub, border: `1px solid ${C.line}` }}
+              >
+                <PanelRight className="h-3.5 w-3.5" /> 인포박스
+              </button>
               <span aria-hidden className="mx-0.5 h-4 w-px" style={{ background: C.line }} />
               <TagEditor tags={active.tags} onChange={(tags) => patchDoc(active.id, { tags })} />
               {/* 책갈피는 여기 없다 — 종이 왼쪽 위의 리본이 그 일을 한다.

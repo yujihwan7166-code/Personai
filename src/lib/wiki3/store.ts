@@ -20,6 +20,22 @@ export interface WikiBook {
   updated: number;
 }
 
+/**
+ * 인포박스 — 위키 문서 옆에 서는 요약 상자(사진 + 항목/값).
+ *
+ * 있는 문서에만 있다. 인물·장소·제품처럼 '같은 항목을 매번 묻게 되는' 글에는
+ * 값어치가 크지만, 하루 일기 같은 글에 붙으면 빈 칸만 남는다.
+ *
+ * 항목을 미리 정해 주지 않는 이유 — 문서마다 물어야 할 것이 다르다.
+ * 약에는 '분류·용량·주의', 사람에는 '생일·연락처'. 정해 주면 안 맞는 문서에서
+ * 억지로 채우거나 빈 줄을 지우는 일이 생긴다.
+ */
+export interface WikiInfobox {
+  /** 압축된 Base64 (infoboxPhoto.ts). 없으면 사진 칸 자체가 없다. */
+  photo?: string;
+  rows: { k: string; v: string }[];
+}
+
 export interface WikiDoc {
   id: string;
   book: string;            // 소속 책 id
@@ -29,6 +45,8 @@ export interface WikiDoc {
   pinned: boolean;
   updated: number;
   body: Value;
+  /** 없으면 인포박스 없음. 빈 상자는 두지 않는다 — 지우면 undefined 로 돌린다. */
+  infobox?: WikiInfobox;
 }
 
 export interface WikiStore {
@@ -236,11 +254,21 @@ export function loadWiki(): WikiStore {
   return { books: [], docs: [], recent: [] };
 }
 
-export function saveWiki(store: WikiStore): void {
+/**
+ * 저장. 자리가 모자라면 false.
+ *
+ * 예전엔 quota 예외를 조용히 삼켰다. 글만 담을 땐 넘칠 일이 거의 없어 넘어갔지만,
+ * 인포박스 사진이 들어오면서 얘기가 달라졌다 — 넘친 줄 모르고 계속 쓰다가 방을
+ * 나가면 그동안 쓴 게 통째로 없다. 부르는 쪽이 알 수 있게 돌려준다.
+ */
+export function saveWiki(store: WikiStore): boolean {
   try {
     localStorage.setItem(WIKI4_KEY, JSON.stringify(store));
     window.dispatchEvent(new CustomEvent(WIKI3_CHANGED));
-  } catch { /* quota — 무시 */ }
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 /* ── 예시 시드 — 빈 서재로 시작하는 첫 사용자에게 기능이 보이는 책 3권.
@@ -513,10 +541,12 @@ export function buildDrugBook(stamp: string = String(Date.now()).slice(-6)): { b
   const B = `bkdrug_${stamp}`;
   const D = (s: string) => `wkdrug_${s}_${stamp}`;
   let t = now;
-  const doc = (id: string, title: string, parent: string | null, body: unknown[], tags: string[] = [], pinned = false): WikiDoc => {
+  const doc = (id: string, title: string, parent: string | null, body: unknown[], tags: string[] = [], pinned = false, infobox?: WikiInfobox): WikiDoc => {
     t -= 60000;
-    return { id, book: B, title, parent, tags, pinned, updated: t, body: body as Value };
+    return { id, book: B, title, parent, tags, pinned, updated: t, body: body as Value, infobox };
   };
+  /** 인포박스 한 상자 — 사진 없이 항목만. 계열 문서엔 매번 같은 것을 묻게 된다. */
+  const ib = (...rows: [string, string][]): WikiInfobox => ({ rows: rows.map(([k, v]) => ({ k, v })) });
 
   const books: WikiBook[] = [
     { id: B, title: '약물', tint: '#33465e', intro: '계통별로 정리하는 공부 노트', updated: now },
@@ -633,7 +663,14 @@ export function buildDrugBook(stamp: string = String(Date.now()).slice(-6)): { b
       _li('고칼륨혈증 · 신기능 확인'),
       _pl(['기침 때문에 못 쓰면 → ', { link: 'ARB', to: D('arb') }]),
       _quote('임신 중 금기.'),
-    ]),
+    ], [], false, ib(
+      ['계열', '안지오텐신 전환효소 억제제'],
+      ['이름 끝', '-프릴 (프릴계)'],
+      ['주 용도', '고혈압 · 심부전 · 당뇨병성 신증'],
+      ['흔한 부작용', '마른기침 · 어지럼'],
+      ['확인할 수치', '혈압 · 칼륨 · 신기능'],
+      ['금기', '임신 · 양측 신동맥 협착'],
+    )),
     doc(D('arb'), 'ARB', D('htn'), [
       _p('수용체 쪽을 막는다. -사르탄으로 끝난다.'),
       _li('기침이 거의 없다'),
@@ -666,7 +703,14 @@ export function buildDrugBook(stamp: string = String(Date.now()).slice(-6)): { b
       _li('근육통 — 흔한 중단 사유. 심하면 횡문근융해'),
       _li('간효소 상승'),
       _li('일부는 자몽주스와 겹치면 농도가 오른다'),
-    ]),
+    ], [], false, ib(
+      ['계열', 'HMG-CoA 환원효소 억제제'],
+      ['이름 끝', '-스타틴'],
+      ['주 용도', 'LDL 낮추기 · 심혈관 예방'],
+      ['먹는 때', '대개 저녁 (합성이 밤에 는다)'],
+      ['흔한 부작용', '근육통 · 간효소 상승'],
+      ['같이 조심', '자몽주스 · 일부 항진균제'],
+    )),
     doc(D('anticoag'), '항혈전', D('cv'), [
       _p('피떡을 막는다. 출혈이 늘 짝으로 따라온다.'),
       _pl([{ link: '항혈소판제', to: D('antiplt') }, ' · ', { link: '항응고제', to: D('warfarin') }]),
@@ -766,7 +810,14 @@ export function buildDrugBook(stamp: string = String(Date.now()).slice(-6)): { b
       _li('위장장애 — 서서히 증량, 식후 복용'),
       _li('신기능에 따라 제한. 조영제 검사 전후 중단 여부 확인'),
       _li('오래 쓰면 B12 결핍'),
-    ]),
+    ], [], false, ib(
+      ['계열', '비구아나이드'],
+      ['주 용도', '2형 당뇨 1차 선택'],
+      ['먹는 때', '식후 — 서서히 증량'],
+      ['저혈당', '단독으로는 드묾'],
+      ['흔한 부작용', '위장장애 · 오래 쓰면 B12 결핍'],
+      ['확인할 수치', '신기능 · B12'],
+    )),
 
     /* ── 7 복약지도 ── */
     doc(D('counsel'), '복약지도', null, [
