@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils';
 import { notify } from '@/lib/notify';
 import { peopleStore } from '@/services/peopleStore';
 import { agoContactLabel, lastContactMap } from '@/lib/people/overdue';
+import { replacePeopleWithSample, restorePeople } from '@/lib/people/sampleData';
 import { diffDays, todayKey } from '@/types/travel';
 import {
   CLOSENESS_META, CLOSENESS_ORDER, RELATION_META, RELATION_ORDER, nextOccurrence,
@@ -307,6 +308,30 @@ export function PersonsView({
           </button>
         </div>
       )}
+
+      {/* 예시로 갈아 끼우기 — 지금 것을 다 버리는 일이라 조용한 글자로 두고,
+          누르면 무엇이 사라지는지 세어 묻는다. 되돌리기도 8초 준다. */}
+      <div className="mt-4 flex justify-end">
+        <button
+          type="button"
+          onClick={() => {
+            const msg = persons.length
+              ? `지금 사람 ${persons.length}명을 지우고 예시 스무 명으로 채울까요?\n\n주고받은 기록과 카테고리도 함께 바뀝니다.\n되돌릴 수 있어요 (8초).`
+              : '예시 스무 명을 넣을까요?';
+            if (!window.confirm(msg)) return;
+            const { before, count } = replacePeopleWithSample();
+            notify.success(`예시 ${count.persons}명을 넣었어요`, {
+              duration: 8000,
+              description: `주고받은 기록 ${count.logs}건 포함`,
+              action: { label: '되돌리기', onClick: () => restorePeople(before) },
+            });
+          }}
+          className="rounded-md px-2 py-1 text-[12px] text-[#a89d86] transition-colors hover:bg-[#f2ece0] hover:text-[#8f4207]"
+          title="지금 사람들을 지우고 관계·친밀도가 제각각인 예시 스무 명으로 채워요"
+        >
+          예시 스무 명으로 채우기
+        </button>
+      </div>
     </div>
   );
 }

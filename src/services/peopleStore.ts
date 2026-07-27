@@ -3,6 +3,7 @@
  */
 import {
   PEOPLE_CHANGED,
+  RELATION_ORDER,
   type Anniv,
   type Closeness,
   type Interaction,
@@ -25,8 +26,12 @@ const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'obj
 const isDate = (v: unknown): v is string => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v);
 const isMonthDay = (v: unknown): v is string =>
   typeof v === 'string' && /^(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/.test(v);
+/* RELATION_ORDER 로 검사한다 — 손으로 나열했더니 'senior'(선후배)와 'acquaintance'(지인)
+   둘이 빠져 있었다. 화면에서는 고를 수 있는데 저장할 때 조용히 '기타' 로 바뀌어,
+   선후배로 넣은 사람이 다음에 열면 기타가 되어 있었다.
+   목록을 두 군데 적으면 반드시 어긋난다 — 한 곳만 보게 한다. */
 const isRelation = (v: unknown): v is Relation =>
-  v === 'family' || v === 'friend' || v === 'work' || v === 'business' || v === 'etc';
+  typeof v === 'string' && (RELATION_ORDER as string[]).includes(v);
 const isCloseness = (v: unknown): v is Closeness =>
   v === 'best' || v === 'close' || v === 'normal' || v === 'distant';
 const isKind = (v: unknown): v is InteractionKind =>
