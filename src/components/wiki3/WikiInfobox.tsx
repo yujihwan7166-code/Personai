@@ -27,13 +27,15 @@ const C = {
 
 interface Props {
   value: WikiInfobox;
-  /** 문서 제목 — 상자 머리에 쓴다(제목을 또 적게 하지 않는다). */
+  /** 문서 제목 — 화면에는 안 쓴다. 읽어주는 기계에게 이 상자가 무엇의 요약인지 알린다. */
   title: string;
+  /** 소속 책의 색 — 상자 윗머리 띠. */
+  tint?: string;
   editing: boolean;
   onChange: (next: WikiInfobox | undefined) => void;
 }
 
-export function WikiInfoboxCard({ value, title, editing, onChange }: Props) {
+export function WikiInfoboxCard({ value, title, tint, editing, onChange }: Props) {
   const [busy, setBusy] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const rows = value.rows ?? [];
@@ -68,9 +70,11 @@ export function WikiInfoboxCard({ value, title, editing, onChange }: Props) {
       style={{ background: C.paper, border: `1px solid ${C.line}`, boxShadow: '0 1px 2px rgba(60,47,24,.06)' }}
       aria-label={`${title} 요약`}
     >
-      <div className="px-3.5 py-2.5 text-center" style={{ background: C.head, borderBottom: `1px solid ${C.lineSoft}` }}>
-        <span className="block truncate text-[13.5px] font-bold" style={{ color: C.ink }}>{title || '무제'}</span>
-      </div>
+      {/* 머리엔 문서 제목을 적지 않는다 — 왼쪽 종이 맨 위에 34px 로 이미 있고,
+          두 제목이 200px 간격으로 나란히 서면 둘 중 하나가 잘못 놓인 것처럼 보인다.
+          대신 소속 책 색으로 띠 하나만 두른다: 어느 책의 문서인지가 색으로 남고,
+          상자에 '뚜껑'이 생겨 그냥 떠 있는 표로 보이지 않는다. */}
+      <div aria-hidden style={{ height: 3, background: tint || C.green }} />
 
       {/* 사진 */}
       {value.photo ? (

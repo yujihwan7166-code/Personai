@@ -1295,7 +1295,7 @@ export default function Wiki() {
               {active.infobox && (
                 <div className="sticky top-4">
                   <WikiInfoboxCard
-                    value={active.infobox} title={active.title} editing={mode === 'edit'}
+                    value={active.infobox} title={active.title} tint={book.tint} editing={mode === 'edit'}
                     onChange={(next) => patchDoc(active.id, { infobox: next })}
                   />
                 </div>
@@ -1307,7 +1307,7 @@ export default function Wiki() {
               {active.infobox && (
                 <div className="mb-4">
                   <WikiInfoboxCard
-                    value={active.infobox} title={active.title} editing={mode === 'edit'}
+                    value={active.infobox} title={active.title} tint={book.tint} editing={mode === 'edit'}
                     onChange={(next) => patchDoc(active.id, { infobox: next })}
                   />
                 </div>
