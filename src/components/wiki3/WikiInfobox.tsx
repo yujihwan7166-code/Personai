@@ -4,8 +4,12 @@
  * 읽을 때는 조용한 표, 고칠 때는 그 자리에서 바로 고치는 표다. 별도 편집 창을 띄우지
  * 않는다 — 두 줄 고치자고 창을 열고 닫으면 그게 더 일이다.
  *
- * 생김새는 이 방 물건에 맞췄다: 크림 종이(paper) 위 얇은 잉크 선, 머리에만 옅은 면.
- * 위키백과의 회색 상자를 그대로 가져오면 서재 한가운데 브라우저 창이 하나 열린 꼴이 된다.
+ * 자리는 종이 안, 본문 오른쪽 위. float 라 본문이 상자 왼쪽으로 흘러 내려간다 —
+ * 위키가 예부터 쓰던 방식이고, 상자 아래 오른쪽이 빈 채로 남지 않는다.
+ *
+ * 생김새는 '종이에 인쇄된 표' 다. 카드가 아니다 — 그림자와 흰 면을 두르면 종이 위에
+ * 붙인 스티커가 되어 본문과 겉돈다. 위키백과의 회색 상자를 그대로 가져와도 마찬가지로
+ * 서재 한가운데 브라우저 창이 하나 열린 꼴이 된다.
  */
 import { useRef, useState } from 'react';
 import { ImagePlus, Loader2, Plus, Trash2, X } from 'lucide-react';
@@ -64,27 +68,33 @@ export function WikiInfoboxCard({ value, title, tint, editing, onChange }: Props
   const empty = !value.photo && rows.every((r) => !r.k.trim() && !r.v.trim());
   if (!editing && empty) return null;
 
+  /* 종이에 인쇄된 표처럼 — 카드가 아니다.
+     그림자와 흰 면을 두르면 종이 위에 붙인 스티커가 되어 본문과 겉돈다.
+     그림자를 걷고, 바탕은 종이보다 아주 조금만 눌러(3%) 인쇄된 자리처럼 두고,
+     테두리는 실선 한 겹만 남긴다. 위쪽 책 색 띠는 2px 로 얇게 — 뚜껑 노릇만 하고
+     스스로 눈에 띄지는 않게. */
   return (
     <aside
-      className="overflow-hidden rounded-[12px]"
-      style={{ background: C.paper, border: `1px solid ${C.line}`, boxShadow: '0 1px 2px rgba(60,47,24,.06)' }}
+      className="overflow-hidden rounded-[8px]"
+      style={{ background: 'rgba(60,47,24,.032)', border: `1px solid ${C.line}` }}
       aria-label={`${title} 요약`}
     >
-      {/* 머리엔 문서 제목을 적지 않는다 — 왼쪽 종이 맨 위에 34px 로 이미 있고,
-          두 제목이 200px 간격으로 나란히 서면 둘 중 하나가 잘못 놓인 것처럼 보인다.
-          대신 소속 책 색으로 띠 하나만 두른다: 어느 책의 문서인지가 색으로 남고,
-          상자에 '뚜껑'이 생겨 그냥 떠 있는 표로 보이지 않는다. */}
-      <div aria-hidden style={{ height: 3, background: tint || C.green }} />
+      {/* 머리엔 문서 제목을 적지 않는다 — 종이 맨 위에 이미 크게 있고,
+          두 제목이 나란히 서면 둘 중 하나가 잘못 놓인 것처럼 보인다.
+          어느 책의 문서인지는 색으로 남긴다. */}
+      <div aria-hidden style={{ height: 2, background: tint || C.green, opacity: 0.75 }} />
 
       {/* 사진 */}
       {value.photo ? (
-        <div className="relative p-2.5">
-          <img src={value.photo} alt="" className="w-full rounded-[8px] object-cover" style={{ border: `1px solid ${C.lineSoft}` }} />
+        /* 사진은 상자 폭을 꽉 채운다 — 안쪽에 여백을 두고 다시 테두리를 두르면
+           액자 속 액자가 되어 상자가 두꺼워 보인다. */
+        <div className="relative">
+          <img src={value.photo} alt="" className="block w-full object-cover" style={{ borderBottom: `1px solid ${C.lineSoft}` }} />
           {editing && (
             <button
               type="button" onClick={() => onChange({ ...value, photo: undefined })}
               aria-label="사진 빼기"
-              className="absolute right-4 top-4 flex h-6 w-6 items-center justify-center rounded-full text-white transition-colors"
+              className="absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full text-white transition-colors"
               style={{ background: 'rgba(30,24,16,.6)' }}
             >
               <X className="h-3.5 w-3.5" />
@@ -111,7 +121,7 @@ export function WikiInfoboxCard({ value, title, tint, editing, onChange }: Props
           <div
             key={i}
             className="grid items-start gap-2 px-3.5 py-2"
-            style={{ gridTemplateColumns: '72px minmax(0,1fr)', borderTop: i === 0 && !value.photo ? 'none' : `1px solid ${C.lineSoft}` }}
+            style={{ gridTemplateColumns: '72px minmax(0,1fr)', borderTop: i === 0 ? 'none' : `1px solid ${C.lineSoft}` }}
           >
             {editing ? (
               <>

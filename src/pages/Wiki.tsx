@@ -1246,11 +1246,9 @@ export default function Wiki() {
                흔들리는 경우가 둘이었다 — ①제목 2개 미만인 문서 ②편집 모드.
                그래서 열은 언제나 자리를 잡아두고 내용만 들고 난다. 읽다가 편집을 눌러도 본문은 제자리.
 
-               반면 인포박스가 있는 문서에만 세 번째 칸이 생긴다. 목차는 문서마다 있고
-               없고가 갈리는 부수물이라 그 때문에 본문 폭이 달라지면 안 됐지만, 인포박스는
-               그 문서가 가진 내용이다 — 큰 사진이 들어간 문서가 다른 문서와 폭이 같아야 할
-               이유는 없다. (240px 를 늘 비워두면 인포박스 없는 문서 전부가 그만큼 좁아진다) */
-            <div className="grid gap-5" style={{ gridTemplateColumns: active.infobox ? '140px minmax(0,1fr) 240px' : '140px minmax(0,1fr)', alignItems: 'start' }}>
+               인포박스는 여기 칸을 따로 두지 않는다 — 종이 안(DocMain)에 박아 넣는다.
+               세 번째 칸에 세워 봤더니 종이와 따로 노는 카드처럼 보였다. */
+            <div className="grid gap-5" style={{ gridTemplateColumns: '140px minmax(0,1fr)', alignItems: 'start' }}>
               {/* 좌 — 목차 (읽기 모드, 제목 2개↑). 그 밖에는 빈 열로 자리만 지킨다 */}
               {mode === 'read' && toc.length >= 2 ? (
                 /* 목차 — 줄마다 끊긴 밑줄만 있어서 허전했다.
@@ -1290,28 +1288,10 @@ export default function Wiki() {
                 patchDoc={patchDoc} removeDoc={removeDoc} onBodyChange={onBodyChange}
                 openDoc={openDoc} createDoc={createDoc} setPicker={setPicker} applyTemplate={applyTemplate} tplStamp={tplStamp}
               />
-
-              {/* 우 — 인포박스. 읽는 동안 따라오게 sticky */}
-              {active.infobox && (
-                <div className="sticky top-4">
-                  <WikiInfoboxCard
-                    value={active.infobox} title={active.title} tint={book.tint} editing={mode === 'edit'}
-                    onChange={(next) => patchDoc(active.id, { infobox: next })}
-                  />
-                </div>
-              )}
             </div>
             ) : (
-            /* 모바일/태블릿 — 1열. 인포박스는 본문 위로 올라간다(위키백과 모바일과 같다) */
+            /* 모바일/태블릿 — 1열. 인포박스는 DocMain 안에서 본문 위에 눕는다 */
             <div>
-              {active.infobox && (
-                <div className="mb-4">
-                  <WikiInfoboxCard
-                    value={active.infobox} title={active.title} tint={book.tint} editing={mode === 'edit'}
-                    onChange={(next) => patchDoc(active.id, { infobox: next })}
-                  />
-                </div>
-              )}
               <DocMain
                 active={active} book={book} bookOf={bookOf} bookDocs={bookDocs}
                 mode={mode} setMode={setMode} toc={toc} kids={kids} backlinks={backlinks}
@@ -2138,6 +2118,23 @@ function DocMain({
   tplStamp: number;
 }) {
   void toc;
+
+  /* 인포박스 — 문서 안, 본문 오른쪽 위에 박아 둔다.
+     옆 칸(세 번째 열)에 세워 봤더니 종이와 따로 노는 물건처럼 보였다. 이건 이
+     문서가 가진 요약이지 문서 옆에 놓인 딴 카드가 아니다.
+     float 로 두어 본문이 상자를 돌아 흐른다 — 위키가 예부터 쓰던 방식이고,
+     상자 아래 오른쪽이 빈 채로 남지 않는다. 옆 칸을 걷어 본문이 원래 폭을
+     되찾았으므로 240px 를 떼줘도 글줄은 610px 남는다.
+     좁은 화면에선 흘리지 않고 본문 위에 한 덩이로 눕힌다. */
+  const infoboxSlot = active.infobox ? (
+    <div className="mb-4 w-full sm:float-right sm:mb-3 sm:ml-7 sm:w-[240px]">
+      <WikiInfoboxCard
+        value={active.infobox} title={active.title} tint={book.tint} editing={mode === 'edit'}
+        onChange={(next) => patchDoc(active.id, { infobox: next })}
+      />
+    </div>
+  ) : null;
+
   return (
     <div className="min-w-0">
       <article className="wiki-page relative rounded-[14px] p-6 sm:px-[52px] sm:py-11" style={{ background: C.paper, border: `1px solid ${C.line}`, boxShadow: '0 2px 10px rgba(64,44,18,.05)' }}>
@@ -2172,6 +2169,7 @@ function DocMain({
               {backlinks.length > 0 && <span style={{ fontSize: 13, color: C.muted }}>· 문서 {backlinks.length}개가 이 문서를 언급</span>}
             </div>
             <div aria-hidden className="mb-1 mt-5" style={{ borderBottom: '3px double rgba(60,47,24,.25)' }} />
+            {infoboxSlot}
             <div className="wiki-read">
               <Suspense fallback={<p className="py-10 text-center" style={{ fontSize: 13, color: C.sub }}>문서를 펼치는 중…</p>}>
                 <WikiDocReader key={`${active.id}-${active.updated}`} value={active.body} onOpenDoc={openDoc} containerRef={readBodyRef} />
@@ -2253,6 +2251,7 @@ function DocMain({
             </div>
 
             <div aria-hidden className="mb-1 mt-5" style={{ borderBottom: `1px solid ${C.line}` }} />
+            {infoboxSlot}
 
             <Suspense fallback={<p className="py-10 text-center" style={{ fontSize: 13, color: C.sub }}>편집기를 여는 중…</p>}>
               <WikiDocEditor
@@ -2266,6 +2265,8 @@ function DocMain({
             </Suspense>
           </>
         )}
+        {/* 흘린 상자 마감 — 본문이 상자보다 짧으면 상자가 종이 아래로 삐져나온다 */}
+        <div aria-hidden className="clear-both" />
       </article>
 
       {/* 하위 문서 */}
