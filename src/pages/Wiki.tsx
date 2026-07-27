@@ -1215,10 +1215,10 @@ export default function Wiki() {
               <span className="shrink-0 opacity-50">›</span>
               <span className="min-w-0 truncate px-1.5" style={{ color: C.ink, fontWeight: 600 }}>{active.title || '무제'}</span>
             </div>
-            {/* 칩과 같은 일을 하는 키라는 걸 붙여 말해준다 */}
-            <span className="hidden shrink-0 lg:inline" style={{ fontSize: 12, color: C.muted }}>
-              {backDoc ? 'Esc 로도 돌아가요' : 'Esc로 돌아가기'}
-            </span>
+            {/* 'Esc로 돌아가기' 안내는 뺐다 — Esc 는 그대로 듣는다.
+                돌아가는 길은 이미 눈에 보인다(빵가루 · '← 돌아가기' 칩). 그 옆에서
+                단축키를 한 번 더 일러주는 건, 이미 열려 있는 문 옆에서 문 여는 법을
+                설명하는 꼴이라 줄만 길어졌다. 책 화면에서도 같은 이유로 걷어냈다. */}
             {searchField('w-[210px] max-w-[46vw] shrink-0')}
             </div>
           </div>
