@@ -66,6 +66,10 @@ export function buildStarterLibrary(stamp: string = 'seed'): { books: WikiBook[]
   /* 책을 넘는 링크에 쓸 id — 먼저 이름부터 정해 둔다 */
   const SLEEP = `wk_body_sleep_${stamp}`;
   const RECORD_MONEY = `wk_money_check_${stamp}`;
+  const MONEY_ORDER = `wk_money_order_${stamp}`;
+  const MONEY_AVOID = `wk_money_avoid_${stamp}`;
+  const MONEY_TAX = `wk_money_tax_${stamp}`;
+  const MONEY_PENSION = `wk_money_pension_${stamp}`;
 
   /* ══════════════════════════════════════════════════════════
      1. 커피 — 감각을 수치로 옮기는 책
