@@ -13,7 +13,7 @@ import { newId } from '@/lib/idGenerator';
 import type { Value } from 'platejs';
 import {
   loadWiki, saveWiki, seedIfEmpty, emptyBody, linkedDocIds, bodyText, backlinkExcerpt, BOOK_PALETTE,
-  buildExampleBooks, buildDrugBook,
+  resetToStarter,
   type WikiBook, type WikiDoc, type WikiStore,
 } from '@/lib/wiki3/store';
 import { childrenOf, ancestorsOf, deleteWithPromotion, isDescendant } from '@/lib/wiki3/tree';
@@ -457,19 +457,21 @@ export default function Wiki() {
     </button>
   );
 
-  /** 예시 책 3권 덧붙이기 — 시드는 빈 서재에만 1회 깔리므로, 이미 쓰던 사람은 이 길로. */
-  const addExampleBooks = () => {
-    const { books: nb, docs: nd } = buildExampleBooks();
-    setStore((s) => ({ ...s, books: [...s.books, ...nb], docs: [...s.docs, ...nd] }));
+  /**
+   * 처음 상태로 되돌리기 — 시드는 빈 서재에만 1회 깔리므로 이미 쓰던 사람은 이 길로만
+   * 새 다섯 권을 볼 수 있다. 지금 것을 전부 버리는 일이라 무엇이 사라지는지 세어 묻는다.
+   */
+  const resetLibrary = () => {
+    const msg = allBooks.length || docs.length
+      ? `지금 서재를 버리고 처음 상태로 되돌릴까요?\n\n책 ${allBooks.length}권 · 문서 ${docs.length}개가 모두 사라집니다.\n되돌릴 수 없어요.`
+      : '처음 상태의 다섯 권을 꽂을까요?';
+    if (!window.confirm(msg)) return;
+    const fresh = resetToStarter();
+    setStore(fresh);
     setShelfPage(0);
-    openBook(nb[0].id);
-  };
-
-  const addDrugBook = () => {
-    const { books: nb, docs: nd } = buildDrugBook();
-    setStore((s) => ({ ...s, books: [...s.books, ...nb], docs: [...s.docs, ...nd] }));
-    setShelfPage(0);
-    openBook(nb[0].id);
+    setShelfSort('made');
+    goShelf();
+    notify.success('처음 상태로 되돌렸어요');
   };
 
   /* ── 책 ── */
@@ -1777,33 +1779,24 @@ export default function Wiki() {
             )}
           </div>
 
-          {/* 예시 책 — 링크로 얽힌 세 권을 한 번에 꽂아 이 방이 어떻게 굴러가는지 보여준다 */}
-          <div className="mt-3 flex justify-end gap-1">
+          {/* 처음 상태로 — 시드는 빈 서재에만 1회 깔린다. 이미 쓰던 사람이 새 다섯
+              권을 보려면 이 길뿐이다. 지금 것을 다 버리는 일이라 조용한 글자로 두고,
+              누르면 무엇이 사라지는지 세어 묻는다. */}
+          <div className="mt-3 flex justify-end">
             <button
-              type="button" onClick={addDrugBook}
+              type="button" onClick={resetLibrary}
               className="rounded-md px-2 py-1 transition-colors"
               style={{ fontSize: 12, color: C.muted }}
               onMouseEnter={(e) => { e.currentTarget.style.color = C.green; e.currentTarget.style.background = 'rgba(48,95,76,.08)'; }}
               onMouseLeave={(e) => { e.currentTarget.style.color = C.muted; e.currentTarget.style.background = 'transparent'; }}
-              title="약물 — 총론부터 복약지도까지 4단으로 깊은 긴 책 한 권"
+              title="지금 서재를 버리고 커피·돈·몸·사진·살림 다섯 권으로 되돌려요"
             >
-              긴 책 「약물」 넣어보기
-            </button>
-            <button
-              type="button" onClick={addExampleBooks}
-              className="rounded-md px-2 py-1 transition-colors"
-              style={{ fontSize: 12, color: C.muted }}
-              onMouseEnter={(e) => { e.currentTarget.style.color = C.green; e.currentTarget.style.background = 'rgba(48,95,76,.08)'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.color = C.muted; e.currentTarget.style.background = 'transparent'; }}
-              title="달리기·부엌·잠 — 서로 링크로 이어진 예시 책 3권을 서가에 꽂아요"
-            >
-              예시 책 3권 넣어보기
+              처음 상태로 되돌리기
             </button>
           </div>
-
           {/* 고정된 문서 */}
           {pinnedAll.length > 0 && (
-            <div className="mt-11">
+            <div className="mt-7">
               <div className="flex items-baseline gap-2.5">
                 <h2 className="m-0" style={{ fontFamily: SANS, fontWeight: 700, letterSpacing: '-0.012em', fontSize: 17 }}>고정된 문서</h2>
                 <span style={{ fontSize: 12, color: C.sub }}>책갈피로 꽂아둔 {pinnedAll.length}개</span>
