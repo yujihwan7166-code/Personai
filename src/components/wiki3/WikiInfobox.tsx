@@ -22,6 +22,7 @@ const C = {
   sub: '#6f6350',
   muted: '#8d8271',
   lineSoft: 'rgba(60,47,24,.10)',
+  paper: '#fdfaf2',
   green: '#305f4c',
 };
 /** 본문 제목과 같은 명조 — 항목 이름을 표 머리가 아니라 '적어둔 말'로 보이게 한다. */
@@ -73,11 +74,16 @@ export function WikiInfoboxCard({ value, title, tint, editing, onChange }: Props
      같은 선을 쓰면 설명하지 않아도 같은 종이의 물건으로 읽힌다.
      항목 이름은 본문 제목과 같은 명조 — 표가 아니라 '적어둔 것' 으로 보이게. */
   return (
-    <aside aria-label={`${title} 요약`}>
+    /* 바탕은 종이색으로 채운다. 투명하면 밑을 지나가는 본문 블록이 비쳐 겹쳐 보인다
+       — 종이와 같은 색이라 눈에는 여전히 '아무 바탕도 없는' 것으로 보인다. */
+    <aside aria-label={`${title} 요약`} style={{ background: C.paper }}>
       {/* 위 겹줄 — 책 색은 아주 옅게만 섞는다(어느 책인지 남기되 띠로 튀지 않게) */}
       <div aria-hidden style={{ borderTop: `3px double ${tint ? `${tint}55` : 'rgba(60,47,24,.3)'}` }} />
 
-      {/* 사진 — 종이 위에 그대로 놓인 인쇄물. 테두리도 모서리도 없다. */}
+      {/* 사진 자리는 늘 맨 위 — 없을 때도 자리를 지킨다.
+          예전엔 사진이 없으면 아래 '＋사진' 글자만 있어서, 넣는 순간 상자 생김새가
+          통째로 바뀌고 아래 항목들이 밀려 내려갔다. 자리를 미리 잡아두면
+          '여기 사진이 온다' 가 보이고, 넣어도 흔들리지 않는다. */}
       {value.photo ? (
         <div className="relative pt-3">
           <img src={value.photo} alt="" className="block w-full" />
@@ -92,6 +98,15 @@ export function WikiInfoboxCard({ value, title, tint, editing, onChange }: Props
             </button>
           )}
         </div>
+      ) : editing ? (
+        <button
+          type="button" onClick={() => fileRef.current?.click()} disabled={busy}
+          className="mt-3 flex w-full items-center justify-center gap-1.5 py-5 text-[12px] font-semibold transition-colors hover:bg-[rgba(60,47,24,.05)]"
+          style={{ background: 'rgba(60,47,24,.035)', color: C.muted }}
+        >
+          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImagePlus className="h-4 w-4" />}
+          {busy ? '넣는 중…' : '사진 넣기'}
+        </button>
       ) : null}
 
       {/* 항목/값 — 줄 사이 실선 하나. 칸을 그리지 않는다. */}
@@ -144,7 +159,7 @@ export function WikiInfoboxCard({ value, title, tint, editing, onChange }: Props
           점선은 이 방 어디에도 없는 무늬였고, 지우기는 편집 도구줄의 '인포박스'
           버튼이 이미 하는 일이라 같은 일이 두 군데 있었다. */}
       {editing && (
-        <div className="flex items-center gap-3 pt-1.5" style={{ fontSize: 12 }}>
+        <div className="flex items-center pt-1.5" style={{ fontSize: 12 }}>
           <button
             type="button" onClick={addRow}
             className="flex items-center gap-1 font-semibold transition-opacity hover:opacity-70"
@@ -152,16 +167,6 @@ export function WikiInfoboxCard({ value, title, tint, editing, onChange }: Props
           >
             <Plus className="h-3.5 w-3.5" /> 항목
           </button>
-          {!value.photo && (
-            <button
-              type="button" onClick={() => fileRef.current?.click()} disabled={busy}
-              className="flex items-center gap-1 font-semibold transition-opacity hover:opacity-70"
-              style={{ color: C.green }}
-            >
-              {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ImagePlus className="h-3.5 w-3.5" />}
-              {busy ? '넣는 중…' : '사진'}
-            </button>
-          )}
           <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => void pickPhoto(e.target.files?.[0])} />
         </div>
       )}

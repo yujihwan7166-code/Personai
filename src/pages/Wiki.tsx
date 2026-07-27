@@ -2120,7 +2120,11 @@ function DocMain({
      되찾았으므로 240px 를 떼줘도 글줄은 610px 남는다.
      좁은 화면에선 흘리지 않고 본문 위에 한 덩이로 눕힌다. */
   const infoboxSlot = active.infobox ? (
-    <div className="mb-4 w-full sm:float-right sm:mb-3 sm:ml-7 sm:w-[240px]">
+    /* relative z-10 이 없으면 못 누른다 — 흘린 상자는 흐름 밖에 있고, 뒤따라오는
+       본문/편집기 블록은 그 밑을 지나가면서도 DOM 상 나중이라 위에 그려진다.
+       글자만 옆으로 비켜 갈 뿐 블록 자체는 상자를 덮어 클릭을 가로챈다.
+       바탕을 종이색으로 채우는 것도 같은 이유 — 투명하면 밑을 지나는 것이 비친다. */
+    <div className="relative z-10 mb-4 w-full sm:float-right sm:mb-3 sm:ml-8 sm:w-[300px]">
       <WikiInfoboxCard
         value={active.infobox} title={active.title} tint={book.tint} editing={mode === 'edit'}
         onChange={(next) => patchDoc(active.id, { infobox: next })}
