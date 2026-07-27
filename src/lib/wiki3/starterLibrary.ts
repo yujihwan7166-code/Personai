@@ -20,6 +20,7 @@
  */
 import type { Value } from 'platejs';
 import type { WikiBook, WikiDoc, WikiInfobox } from './store';
+import { buildStockBook } from './stockBook';
 
 /* ── 본문 블록 ── */
 const _p = (text: string) => ({ type: 'p', children: [{ text }] });
@@ -66,10 +67,6 @@ export function buildStarterLibrary(stamp: string = 'seed'): { books: WikiBook[]
   /* 책을 넘는 링크에 쓸 id — 먼저 이름부터 정해 둔다 */
   const SLEEP = `wk_body_sleep_${stamp}`;
   const RECORD_MONEY = `wk_money_check_${stamp}`;
-  const MONEY_ORDER = `wk_money_order_${stamp}`;
-  const MONEY_AVOID = `wk_money_avoid_${stamp}`;
-  const MONEY_TAX = `wk_money_tax_${stamp}`;
-  const MONEY_PENSION = `wk_money_pension_${stamp}`;
 
   /* ══════════════════════════════════════════════════════════
      1. 커피 — 감각을 수치로 옮기는 책
@@ -353,6 +350,8 @@ export function buildStarterLibrary(stamp: string = 'seed'): { books: WikiBook[]
     doc(D('stock'), '주식', D('invest'), [
       _p('회사의 조각이다. 잘 되면 같이 벌고, 망하면 같이 잃는다. 장기적으로는 오른 역사가 있지만 그 “장기” 안에 반토막이 여러 번 들어 있다.'),
       _pl(['한 회사만 사기 → ', { link: '개별 주식', to: D('single') }, ' · 통째로 사기 → ', { link: 'ETF', to: D('etf') }]),
+      /* 두 책은 짝이다 — 순서를 정하는 책에서 회사를 뜯어보는 책으로 건너간다 */
+      _pl(['회사를 직접 골라 보려면 → ', { link: '주식투자 · 이 책을 쓰는 법', to: `wk_stock_how_${stamp}` }]),
       _quote('버틸 수 없는 금액은 애초에 넣지 않는다.'),
     ], {
       infobox: ib(
@@ -867,6 +866,17 @@ export function buildStarterLibrary(stamp: string = 'seed'): { books: WikiBook[]
       _li('수도가 샌다 — 계량기 옆 잠금 밸브 위치를 미리 알아 둔다'),
       _quote('가스 냄새가 나면 아무것도 켜지 말고 창문부터 연다. 환풍기 스위치도 불꽃이다.'),
     ], { tags: ['응급'], pinned: true });
+  }
+
+  /* ══════════════════════════════════════════════════════════
+     6. 주식투자 — 원고가 길어 파일을 따로 뒀다(stockBook.ts).
+        「돈의 순서」와 짝이다: 순서를 정하는 책이 먼저, 회사를 뜯어보는 책이 나중.
+        그래서 두 책이 서로를 가리킨다.
+     ══════════════════════════════════════════════════════════ */
+  {
+    const { book: sb, docs: sd } = buildStockBook(stamp, t);
+    books.push(sb);
+    docs.push(...sd);
   }
 
   return { books, docs };
