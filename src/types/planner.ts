@@ -97,6 +97,9 @@ export interface PlannerTask {
   id: string;
   title: string;
   done: boolean;
+  /** 끝낸 시각 (ISO). 없이 done 인 항목은 이 필드가 생기기 전에 끝낸 것 —
+   * '오래 전에 끝난 것'으로 본다. 인박스에서 오늘 끝낸 것만 남기는 데 쓴다. */
+  doneAt?: string;
   /** 시간 배정된 경우 ISO 8601. 없으면 인박스. */
   startAt?: string;
   /** 시간 배정된 경우 ISO 8601. 없으면 인박스. */

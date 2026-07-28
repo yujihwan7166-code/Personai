@@ -86,6 +86,20 @@ export const taskStore = {
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   },
 
+  /**
+   * 끝낸 일 서랍 — 오늘보다 전에 끝낸 할 일. 최근에 끝낸 것이 먼저.
+   * 오늘 끝낸 것은 인박스에 그대로 남아 있으므로 여기 넣지 않는다.
+   * doneAt 이 없는 옛 항목은 '오래 전'으로 본다.
+   */
+  listDoneArchive(): PlannerTask[] {
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    const cut = startOfToday.toISOString();
+    return activeTasks()
+      .filter((t) => t.done && !(t.doneAt && t.doneAt >= cut))
+      .sort((a, b) => (b.doneAt ?? '').localeCompare(a.doneAt ?? '') || b.createdAt.localeCompare(a.createdAt));
+  },
+
   /** 특정 날짜에 시간 배정된 할일 (시작 시각 오름차순).
    * 반복 시리즈는 해당 날짜에 떨어지는 가상 인스턴스를 합성해 반환.
    * 인스턴스 done 은 master.seriesCompletions[occurrenceIso] 로 결정.
@@ -272,7 +286,10 @@ export const taskStore = {
     const all = safeRead();
     const idx = all.findIndex((t) => t.id === id);
     if (idx === -1) return;
-    all[idx] = { ...all[idx], done: !all[idx].done };
+    const done = !all[idx].done;
+    /* 끝낸 시각을 같이 적는다 — 인박스가 '오늘 끝낸 것'만 남기고 나머지를
+       끝낸 일 서랍으로 넘기려면 언제 끝냈는지를 알아야 한다. */
+    all[idx] = { ...all[idx], done, doneAt: done ? new Date().toISOString() : undefined };
     safeWrite(all);
   },
 
