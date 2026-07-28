@@ -4,6 +4,7 @@ import type { StudyNotebook } from '@/types/study';
 import { LENS_META } from '@/types/study';
 import { StudyBtn } from './ui/primitives';
 import { cn } from '@/lib/utils';
+import { fmtFullDate } from '@/lib/dateFormat';
 
 type ExportRange = 'all' | 'lens-only' | 'wrong-only';
 
@@ -18,7 +19,7 @@ export function ExportMenu({ notebook, onClose }: Props) {
 
   const buildMarkdown = (r: ExportRange = range) => {
     const lines: string[] = [`# ${notebook.title}`, ''];
-    lines.push(`> 원본 ${notebook.sources.length}개 · ${new Date(notebook.updatedAt).toLocaleDateString('ko-KR')}`);
+    lines.push(`> 원본 ${notebook.sources.length}개 · ${fmtFullDate(notebook.updatedAt)}`);
     lines.push('');
     if (r !== 'wrong-only') {
       for (const [lens, out] of Object.entries(notebook.lensOutputs)) {

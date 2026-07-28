@@ -2,6 +2,7 @@
  * AI 어시스턴트 - 이미지·동영상 생성 모듈 타입.
  * AI 녹음 분석(voiceAnalysis.ts)과 대칭 구조.
  */
+import { fmtMonthDayNum } from '@/lib/dateFormat';
 
 export type MediaKind = 'image' | 'video';
 
@@ -151,7 +152,7 @@ export function relativeTime(ms: number): string {
   const d = Math.floor(h / 24);
   if (d < 7) return `${d}일 전`;
   const date = new Date(ms);
-  return `${date.getMonth() + 1}/${date.getDate()}`;
+  return fmtMonthDayNum(date);
 }
 
 /** 시간 그룹 레이블: 오늘 / 어제 / 이번 주 / 지난 주 / YYYY년 N월 */

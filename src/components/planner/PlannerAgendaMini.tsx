@@ -12,6 +12,7 @@ import {
   type PlannerTask, type PlannerEvent,
 } from '@/types/planner';
 import { cn } from '@/lib/utils';
+import { fmtDateWithWeekday } from '@/lib/dateFormat';
 
 const WINDOW_DAYS = 60;
 const MAX_GROUPS = 8;
@@ -52,7 +53,7 @@ const formatDayLabel = (d: Date): string => {
   if (diffDays > 0 && diffDays <= 6) {
     return `${diffDays}일 후 · ${d.toLocaleDateString('ko-KR', { weekday: 'short' })}`;
   }
-  return d.toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric', weekday: 'short' });
+  return fmtDateWithWeekday(d);
 };
 
 const agendaItemKindLabel = (kind: AgendaItem['kind']) => kind === 'event' ? '일정' : '할 일';

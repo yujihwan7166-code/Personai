@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { fmtFullDate } from '@/lib/dateFormat';
 
 interface PlannerMiniMonthProps {
   anchorIso: string;
@@ -186,7 +187,7 @@ export const PlannerMiniMonth = ({ anchorIso, onSelectDay }: PlannerMiniMonthPro
               key={`${key}-${index}`}
               type="button"
               onClick={() => onSelectDay(date.toISOString())}
-              aria-label={`${date.toLocaleDateString('ko-KR')} 선택`}
+              aria-label={`${fmtFullDate(date)} 선택`}
               className={cn(
                 'relative flex h-7 items-center justify-center rounded text-[12.5px] font-semibold tabular-nums transition-colors',
                 !inMonth && 'text-foreground/34',

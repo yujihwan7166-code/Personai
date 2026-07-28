@@ -38,6 +38,7 @@ import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent,
   DropdownMenuItem, DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
+import { fmtFullDate } from '@/lib/dateFormat';
 
 interface BreadcrumbItem {
   id: string | null; // null = 루트
@@ -2292,7 +2293,7 @@ function relativeTime(iso: string): string {
   if (diffH < 24) return `${diffH}시간 전`;
   const diffD = Math.floor(diffH / 24);
   if (diffD < 7) return `${diffD}일 전`;
-  return new Date(iso).toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' });
+  return fmtFullDate(iso);
 }
 
 /** 최근 수정 강조 단계 — recent(1시간 이내) / today(24시간 이내) / 그 외 null. */

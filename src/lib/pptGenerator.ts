@@ -1,4 +1,5 @@
 import PptxGenJS from 'pptxgenjs';
+import { fmtFullDate } from '@/lib/dateFormat';
 
 // ── 테마 ──
 export interface PptTheme {
@@ -68,7 +69,7 @@ export function generatePpt(data: PptData, filename?: string) {
           });
         }
         // 날짜
-        s.addText(new Date().toLocaleDateString('ko-KR'), {
+        s.addText(fmtFullDate(new Date()), {
           x: 0.8, y: 5.5, w: 5, h: 0.5,
           fontSize: 12, fontFace: 'Pretendard, Arial',
           color: '#FFFFFF', transparency: 40,

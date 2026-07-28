@@ -23,6 +23,7 @@ import {
   Star, Bookmark, Palette, Cloud, Inbox,
   MessagesSquare, Swords, FlaskConical,
 } from 'lucide-react';
+import { fmtMonthDayNum } from '@/lib/dateFormat';
 
 interface Props {
   experts: Expert[];
@@ -291,7 +292,7 @@ function formatSearchDate(timestamp: number): string {
     const days = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'];
     return days[date.getDay()];
   }
-  return `${date.getMonth() + 1}/${date.getDate()}`;
+  return fmtMonthDayNum(date);
 }
 
 function getSearchGroup(timestamp: number): string {

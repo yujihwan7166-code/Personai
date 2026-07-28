@@ -18,6 +18,7 @@
  * 인식 실패 시 빈 결과 (정상 — 입력은 그냥 제목으로 사용).
  */
 import type { RecurrenceRule, Priority, WeekdayCode } from '@/types/planner';
+import { fmtDateWithWeekday } from '@/lib/dateFormat';
 
 export interface ParsedInput {
   /** 메타 토큰 제거된 제목. */
@@ -304,7 +305,7 @@ export function formatParsedPreview(parsed: ParsedInput): string {
     const sameDay = s.toDateString() === today.toDateString();
     const dayLabel = sameDay
       ? '오늘'
-      : s.toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric', weekday: 'short' });
+      : fmtDateWithWeekday(s);
     const timeLabel = s.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
     const dur = Math.round((e.getTime() - s.getTime()) / 60_000);
     const durLabel = dur < 60 ? `${dur}분` : `${Math.floor(dur / 60)}시간${dur % 60 ? ` ${dur % 60}분` : ''}`;

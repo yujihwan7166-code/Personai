@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Loader2, CheckCircle2, AlertCircle, RotateCw } from 'lucide-react';
+import { fmtMonthDay } from '@/lib/dateFormat';
 
 export type SaveState = 'idle' | 'saving' | 'saved' | 'error';
 
@@ -100,5 +101,5 @@ function formatRelTime(at: number): string {
   const day = Math.floor(hr / 24);
   if (day === 1) return '어제';
   if (day < 7) return `${day}일 전`;
-  return new Date(at).toLocaleDateString('ko-KR');
+  return fmtMonthDay(at);
 }

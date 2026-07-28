@@ -5,6 +5,7 @@ import {
   VOICE_STATUS_LABEL,
   type VoiceRecording,
 } from '@/types/voiceAnalysis';
+import { fmtMonthDayNum } from '@/lib/dateFormat';
 
 interface Props {
   recording: VoiceRecording;
@@ -22,7 +23,7 @@ function formatRelative(ms: number): string {
   const d = Math.floor(h / 24);
   if (d < 7) return `${d}일 전`;
   const date = new Date(ms);
-  return `${date.getMonth() + 1}/${date.getDate()}`;
+  return fmtMonthDayNum(date);
 }
 
 export function RecordingListItem({ recording, selected, onSelect }: Props) {

@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils';
 import type { BriefingData } from '@/lib/buildBriefingData';
 import { WIDGET_META, type PlacedWidget } from '@/lib/dailyBriefingStore';
 import { stripMarkdown } from '@/lib/journalMarkdown';
+import { fmtDateWithWeekday } from '@/lib/dateFormat';
 
 const fmtTime = (iso: string): string => {
   const d = new Date(iso);
@@ -497,7 +498,7 @@ export function RecentJournalWidget({ data, onClose }: WidgetProps) {
             <div className="flex items-center gap-1.5 flex-wrap">
               {moodEmoji && <span className="text-[16px] leading-none" aria-hidden>{moodEmoji}</span>}
               <span className="inline-flex items-center px-1.5 h-[18px] rounded-full bg-foreground/8 text-[9.5px] font-semibold text-foreground/70 tabular-nums">
-                {new Date(entry.createdAt).toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric', weekday: 'short' })}
+                {fmtDateWithWeekday(new Date(entry.createdAt))}
               </span>
             </div>
             <p className="mt-1 text-[11.5px] text-foreground/85 leading-relaxed line-clamp-3 flex-1">
@@ -521,7 +522,7 @@ export function ClockWidget({ data }: WidgetProps) {
   const hh = String(now.getHours()).padStart(2, '0');
   const mm = String(now.getMinutes()).padStart(2, '0');
   const ss = String(now.getSeconds()).padStart(2, '0');
-  const dateLabel = now.toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric', weekday: 'short' });
+  const dateLabel = fmtDateWithWeekday(now);
 
   // 다음 일정 (아직 시작 안 한 가장 가까운)
   const nowMs = now.getTime();

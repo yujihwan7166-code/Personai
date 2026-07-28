@@ -11,6 +11,7 @@ import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
 import { journalStore } from '@/services/journalStore';
 import { JOURNAL_CHANGED, type JournalEntry } from '@/types/journal';
 import { cn } from '@/lib/utils';
+import { fmtMonthDay } from '@/lib/dateFormat';
 
 interface JournalDrawerProps {
   open: boolean;
@@ -32,7 +33,7 @@ const formatRelative = (iso: string): string => {
   if (hours < 24) return `${hours}시간 전`;
   const days = Math.floor(hours / 24);
   if (days < 7) return `${days}일 전`;
-  return new Date(iso).toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' });
+  return fmtMonthDay(iso);
 };
 
 const useEntries = () => {
