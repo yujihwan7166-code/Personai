@@ -28,10 +28,6 @@ const Tickets = lazy(() => import("./pages/Tickets"));
 const Today = lazy(() => import("./pages/Today"));
 const Ledger = lazy(() => import("./pages/Ledger"));
 const Rewind = lazy(() => import("./pages/Rewind"));
-const Cloud = lazy(() => import("./pages/Cloud"));
-const CloudDocEditor = lazy(() => import("./pages/CloudDocEditor"));
-const CloudSheetEditor = lazy(() => import("./pages/CloudSheetEditor"));
-const CloudSlideEditor = lazy(() => import("./pages/CloudSlideEditor"));
 
 function RouteFallback() {
   return <div className="min-h-screen bg-background" aria-hidden="true" />;
@@ -66,10 +62,6 @@ const App = () => (
               <Route path="/today" element={<AppWorkspaceShell current="today"><Today /></AppWorkspaceShell>} />
               <Route path="/ledger" element={<AppWorkspaceShell current="ledger"><Ledger /></AppWorkspaceShell>} />
               <Route path="/rewind" element={<AppWorkspaceShell current="rewind"><Rewind /></AppWorkspaceShell>} />
-              <Route path="/cloud" element={<Cloud />} />
-              <Route path="/cloud/doc/:id" element={<CloudDocEditor />} />
-              <Route path="/cloud/sheet/:id" element={<CloudSheetEditor />} />
-              <Route path="/cloud/slide/:id" element={<CloudSlideEditor />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
