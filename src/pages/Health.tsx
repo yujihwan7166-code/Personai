@@ -19,6 +19,7 @@ import {
   METRIC_META, VITAL_METRICS, vitalStatus, SYMPTOM_PRESETS,
   type VitalMetric, type VitalReading,
 } from '@/types/health';
+import { fmtMonthDayNum } from '@/lib/dateFormat';
 
 type View = 'summary' | 'visits' | 'meds' | 'vitals' | 'symptoms';
 
@@ -61,7 +62,7 @@ function TrendChart({ readings, color, height = 200, dots = true }: { readings: 
         {dots && readings.map((r, i) => <circle key={r.id} cx={x(i)} cy={y(r.value)} r={4} fill="hsl(var(--card))" stroke={color} strokeWidth={3} />)}
       </svg>
       <div className="mt-1 flex justify-between px-2">
-        {readings.map((r) => { const d = parseYmd(r.date); return <span key={r.id} className="text-[11px] text-muted-foreground">{d.getMonth() + 1}/{d.getDate()}</span>; })}
+        {readings.map((r) => { const d = parseYmd(r.date); return <span key={r.id} className="text-[11px] text-muted-foreground">{fmtMonthDayNum(d)}</span>; })}
       </div>
     </div>
   );
@@ -279,7 +280,9 @@ export default function Health() {
             <div className="flex flex-wrap gap-2">
               {VITAL_METRICS.map((m) => (
                 <button key={m} type="button" onClick={() => setMetric(m)}
-                  className={cn('rounded-full border px-3.5 py-1.5 text-[13px] font-semibold transition-colors',
+                  /* 채우는 색이 방 색이 아니라 지표 색인 건 일부러다 — 바로 아래 차트의
+                     선 색과 같아야 '지금 보는 게 이것'이 이어진다. 크기만 칩 규격에 맞춘다. */
+                  className={cn('rounded-full border px-3 py-1.5 text-[12.5px] font-semibold transition-colors',
                     metric === m ? 'border-transparent text-white' : 'border-[hsl(var(--hairline))] bg-[hsl(var(--card))] text-muted-foreground hover:bg-[hsl(var(--accent))]')}
                   style={metric === m ? { backgroundColor: METRIC_META[m].color } : undefined}>
                   {METRIC_META[m].emoji} {METRIC_META[m].label}

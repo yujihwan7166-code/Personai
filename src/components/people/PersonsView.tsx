@@ -343,7 +343,9 @@ function FilterChip({ active, onClick, children }: { active: boolean; onClick: (
       onClick={onClick}
       className={cn(
         'inline-flex h-[32px] items-center rounded-full px-3.5 text-[13.5px] transition-colors',
-        active ? 'bg-[#23262b] font-semibold text-white' : 'bg-[#efeadd] font-medium text-[#5a5648] hover:bg-[#e6dfcd]',
+        /* 활성색은 방 색(앰버)이다 — 예전엔 여기만 검정이라, 바로 옆 카테고리 칩과
+           한 줄 안에서 '골라진 것'이 두 가지 색으로 보였다. */
+        active ? 'bg-[#8f4207] font-semibold text-white' : 'bg-[#efeadd] font-medium text-[#5a5648] hover:bg-[#e6dfcd]',
       )}
     >
       {children}

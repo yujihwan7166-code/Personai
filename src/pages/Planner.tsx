@@ -81,6 +81,7 @@ import { taskStore } from '@/services/planner/taskStore';
 import { eventStore } from '@/services/planner/eventStore';
 import type { PlannerLibraryItem } from '@/services/planner/libraryStore';
 import { notify } from '@/lib/notify';
+import { fmtMonthDayNum } from '@/lib/dateFormat';
 import { editThisOnly } from '@/lib/planner/seriesEdit';
 import { isInstanceId, parseInstanceId } from '@/lib/planner/recurrence';
 import { getSnapMin } from '@/lib/planner/snapMin';
@@ -841,9 +842,7 @@ const Planner = () => {
       start.setDate(d.getDate() - d.getDay());
       const end = new Date(start);
       end.setDate(start.getDate() + 6);
-      const startFmt = `${start.getMonth() + 1}.${start.getDate()}`;
-      const endFmt = `${end.getMonth() + 1}.${end.getDate()}`;
-      return { primary: `${startFmt} ~ ${endFmt}` };
+      return { primary: `${fmtMonthDayNum(start)} ~ ${fmtMonthDayNum(end)}` };
     }
     if (view !== 'day') return { primary: periodLabel };
     const d = new Date(anchorIso);
@@ -2047,7 +2046,7 @@ const Planner = () => {
                       className={cn(
                         'inline-flex h-7 min-w-8 items-center justify-center rounded-[7px] px-2 text-[12px] font-semibold leading-none transition-all',
                         active
-                          ? 'border border-primary/20 bg-primary/[0.075] text-primary shadow-[0_1px_5px_hsl(var(--primary)/0.16)]'
+                          ? 'border border-primary/20 bg-primary/[0.075] text-primary'
                           : 'text-muted-foreground hover:bg-accent/80 hover:text-foreground',
                         nextView === 'habits' && 'min-w-10',
                       )}

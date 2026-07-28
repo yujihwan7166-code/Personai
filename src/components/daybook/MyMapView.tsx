@@ -126,7 +126,7 @@ export default function MyMapView() {
                 onClick={() => pickTab(t.id)}
                 className={cn(
                   'flex flex-1 items-center justify-center gap-1.5 rounded-[10px] px-1 py-2 text-[12px] font-semibold transition-colors',
-                  on ? 'bg-[hsl(var(--travel-teal))] text-white' : 'text-muted-foreground hover:bg-[hsl(var(--surface-2))]',
+                  on ? 'bg-[hsl(var(--travel-teal))]/12 text-[hsl(var(--travel-teal))]' : 'text-muted-foreground hover:bg-[hsl(var(--surface-2))]',
                 )}
               >
                 <span className="truncate">{t.label}</span>
@@ -154,7 +154,7 @@ export default function MyMapView() {
                   key={v}
                   type="button"
                   onClick={() => setSort(v)}
-                  className={cn('rounded-[7px] px-2 py-1 text-[11px] font-semibold transition-colors',
+                  className={cn('rounded-[7px] px-2.5 py-1 text-[12px] font-semibold transition-colors',
                     sort === v ? 'bg-[hsl(var(--surface-1))] text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground')}
                 >
                   {label}

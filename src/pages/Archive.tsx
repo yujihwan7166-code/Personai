@@ -513,7 +513,7 @@ function ArchiveSegmented({ value, options, onChange }: {
   value: string; options: { v: string; label: string }[]; onChange: (v: string) => void;
 }) {
   return (
-    <div className="flex items-center gap-0.5 rounded-[9px] border border-[hsl(var(--hairline))] bg-card p-[3px]">
+    <div className="flex items-center gap-0.5 rounded-[9px] border border-[hsl(var(--hairline))] bg-card p-0.5">
       {options.map((o) => {
         const on = o.v === value;
         return (
@@ -523,7 +523,7 @@ function ArchiveSegmented({ value, options, onChange }: {
             onClick={() => onChange(o.v)}
             aria-pressed={on}
             /* 색만 바뀌면 눌린 칸이 '깜빡' 갈아치워진다 — 눌리는 감(scale)까지 함께 */
-            className={cn('h-[26px] rounded-[7px] px-[13px] text-[12.5px] transition-[background-color,color,transform] duration-200 active:scale-[0.96]',
+            className={cn('h-[28px] rounded-[7px] px-[13px] text-[12.5px] transition-[background-color,color,transform] duration-200 active:scale-[0.96]',
               on
                 ? 'bg-[hsl(var(--archive-sepia))] font-bold text-white'
                 : 'font-semibold text-muted-foreground hover:bg-[hsl(var(--surface-2))] hover:text-foreground')}
