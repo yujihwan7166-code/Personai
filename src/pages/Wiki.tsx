@@ -7,7 +7,7 @@
  * 기능은 전부 실물: Plate 편집·읽기, 드래그 링크, 인포박스 편집, 백링크 문맥 발췌, mywiki.v4.
  */
 import { Suspense, lazy, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { Check, ChevronDown, PanelRight, Pencil, Plus, Search, Star, Trash2, X } from 'lucide-react';
+import { Check, ChevronDown, Palette, PanelRight, Pencil, Plus, Search, Star, Trash2, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { newId } from '@/lib/idGenerator';
 import type { Value } from 'platejs';
@@ -21,6 +21,7 @@ import { BUILTIN_TEMPLATES, loadTemplates, saveTemplates, type WikiTemplate } fr
 import type { WikiEditorApi } from '@/components/wiki3/WikiDocEditor';
 import { WikiInfoboxCard } from '@/components/wiki3/WikiInfobox';
 import { notify } from '@/lib/notify';
+import { fmtMonthDayNum } from '@/lib/dateFormat';
 
 const WikiDocEditor = lazy(() => import('@/components/wiki3/WikiDocEditor').then((m) => ({ default: m.WikiDocEditor })));
 const WikiDocReader = lazy(() => import('@/components/wiki3/WikiDocReader').then((m) => ({ default: m.WikiDocReader })));
@@ -229,7 +230,7 @@ const fmtRel = (ts: number) => {
   return `${dt.getMonth() + 1}월 ${dt.getDate()}일`;
 };
 const fmtDate = (ts: number) => { const d = new Date(ts); return `${d.getMonth() + 1}월 ${d.getDate()}일`; };
-const fmtShort = (ts: number) => { const d = new Date(ts); return `${d.getMonth() + 1}.${String(d.getDate()).padStart(2, '0')}`; };
+const fmtShort = (ts: number) => fmtMonthDayNum(new Date(ts));
 
 /** 서가 소품 — 책이 적을 때 빈 칸을 지키는 정물(꽃병). 책이 차면 자리를 내준다. */
 function ShelfProp({ kind }: { kind: 'vase' }) {
@@ -2016,9 +2017,24 @@ function TemplatePicker({ docBody, onApply }: { docBody: Value; onApply: (body: 
   const removeMine = (id: string) => {
     const t = mine.find((x) => x.id === id);
     if (!t || !window.confirm(`템플릿 "${t.name}"을 지울까요?`)) return;
+    const at = mine.findIndex((x) => x.id === id);
     const next = mine.filter((x) => x.id !== id);
     setMine(next);
     saveTemplates(next);
+    notify.success(`템플릿 "${t.name}"을 지웠어요`, {
+      action: {
+        label: '되돌리기',
+        onClick: () => {
+          setMine((cur) => {
+            if (cur.some((x) => x.id === id)) return cur;
+            const back = [...cur];
+            back.splice(Math.min(Math.max(at, 0), back.length), 0, t);
+            saveTemplates(back);
+            return back;
+          });
+        },
+      },
+    });
   };
 
   const row = (t: WikiTemplate) => (
@@ -2459,6 +2475,7 @@ function BookDialog({ book, onClose, onSave, onDelete }: {
   const [title, setTitle] = useState(book?.title ?? '');
   const [intro, setIntro] = useState(book?.intro ?? '');
   const [tint, setTint] = useState(book?.tint ?? BOOK_PALETTE[0]);
+  const customTint = !BOOK_PALETTE.includes(tint); // 목록에 없는 색 = 직접 고른 색
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
     window.addEventListener('keydown', onKey);
@@ -2558,6 +2575,31 @@ function BookDialog({ book, onClose, onSave, onDelete }: {
                     {tint === c && <Check className="h-3.5 w-3.5" style={{ color: '#fbf3e2' }} />}
                   </button>
                 ))}
+                {/* 직접 고르기 — 고른 색이 목록에 없으면 이 칸이 그 색을 입고 서 있는다.
+                    (label 로 감싸 색상 입력을 숨긴다. 브라우저가 띄우는 색 고르개를 그대로 쓴다) */}
+                <label
+                  title="직접 고르기"
+                  aria-label="책등 색 직접 고르기"
+                  className="relative flex h-[26px] w-[26px] cursor-pointer items-center justify-center rounded-full transition-transform hover:scale-110"
+                  style={
+                    customTint
+                      ? { background: tint, boxShadow: `0 0 0 2px ${C.paper}, 0 0 0 4px ${tint}` }
+                      : {
+                          background: 'conic-gradient(#9a4632,#b98a2e,#4a5d3a,#3f6058,#2f4a72,#6b5b8a,#8c2f3d,#9a4632)',
+                          boxShadow: 'inset 0 -2px 4px rgba(0,0,0,.25)',
+                        }
+                  }
+                >
+                  {customTint
+                    ? <Check className="h-3.5 w-3.5" style={{ color: '#fbf3e2' }} />
+                    : <Palette className="h-3 w-3" style={{ color: '#fbf3e2' }} />}
+                  <input
+                    type="color"
+                    value={tint}
+                    onChange={(e) => setTint(e.target.value)}
+                    className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                  />
+                </label>
               </div>
             </div>
           </div>
