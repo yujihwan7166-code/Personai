@@ -67,7 +67,7 @@ import {
   CHART_PALETTE, type SelRange, type EmbeddedChart,
 } from '@/lib/cloudSheet/chart';
 // recharts components 는 lib/cloudSheet/EmbeddedChartCard + ChartModal 으로 이동
-import { exportElementToPdf, sanitizeFileName } from '@/lib/cloudCommon/pdfExport';
+import { exportElementToPdf, sanitizeFileName } from '@/lib/pdfExport';
 import { downloadCsv } from '@/lib/blob';
 import { AiSidebar } from '@/components/cloud/AiSidebar';
 import { AiSidebarToggle } from '@/components/cloud/AiSidebarToggle';

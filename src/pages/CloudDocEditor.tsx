@@ -36,7 +36,7 @@ import {
   type DocxSectionColumns,
 } from '@/lib/cloudDoc/docx';
 import { readMarkdownFile, exportMarkdownFile } from '@/lib/cloudDoc/markdown';
-import { exportElementToPdf, sanitizeFileName } from '@/lib/cloudCommon/pdfExport';
+import { exportElementToPdf, sanitizeFileName } from '@/lib/pdfExport';
 import { type PageMargin } from '@/lib/cloudDoc/PageRuler';
 import { DocPage, PAGE_GAP_PX, type PageSize } from '@/lib/cloudDoc/DocPage';
 import { SaveStateBadge, type SaveState } from '@/lib/cloudDoc/SaveStateBadge';

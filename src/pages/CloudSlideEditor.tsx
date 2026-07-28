@@ -33,7 +33,7 @@ import {
   aiNextSlide, aiImproveSlide, aiOutlinePresentation,
   slideToText, slidesToOutline, parseAiSlideContent,
 } from '@/lib/cloudSlide/ai';
-import { exportElementsToPdf, sanitizeFileName } from '@/lib/cloudCommon/pdfExport';
+import { exportElementsToPdf, sanitizeFileName } from '@/lib/pdfExport';
 import { exportElementAsPng } from '@/lib/cloudCommon/pngExport';
 import { AiSidebar } from '@/components/cloud/AiSidebar';
 import { AiSidebarToggle } from '@/components/cloud/AiSidebarToggle';

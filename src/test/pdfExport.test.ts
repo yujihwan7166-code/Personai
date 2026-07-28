@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { computePdfPageSlices } from '@/lib/cloudCommon/pdfExport';
+import { computePdfPageSlices } from '@/lib/pdfExport';
 
 describe('computePdfPageSlices', () => {
   it('splits by page height and skips configured page gaps', () => {

@@ -21,7 +21,7 @@ import { notify } from '@/lib/notify';
 import { useCareerBoard } from '@/hooks/useCareer';
 import { careerStore } from '@/services/careerStore';
 import { aiClassifySpec, aiComposeCareerDoc, type ComposePurpose } from '@/lib/career/ai';
-import { exportElementToPdf, sanitizeFileName } from '@/lib/cloudCommon/pdfExport';
+import { exportElementToPdf, sanitizeFileName } from '@/lib/pdfExport';
 import { RESUME_TEMPLATES, ResumeThumb, type ResumeTemplateId } from '@/lib/career/resumeTemplates';
 import { PaperThumb, THUMB_BY_PURPOSE } from '@/components/career/PaperThumb';
 import { PERSONA_LABEL, type CareerDoc, type CareerPersona, type CareerProfile, type SpecCategory, type SpecItem } from '@/types/career';
