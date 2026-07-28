@@ -9,7 +9,7 @@
 
 **스택:** React 18 + Vite 5 + TypeScript + Tailwind + shadcn/Radix + Supabase Auth + Vercel Serverless Functions
 
-**큰 그림:** SPA 하나 안에 14개 AI 모드 + 8개 도메인 페이지 + 클라우드 협업이 한 줌. 거의 모든 데이터는 **localStorage / IndexedDB**, 일부만 Supabase·API.
+**큰 그림:** SPA 하나 안에 14개 AI 모드 + 도메인 페이지들이 한 줌. 거의 모든 데이터는 **localStorage / IndexedDB**, 일부만 Supabase·API.
 
 ```mermaid
 flowchart LR
@@ -19,7 +19,6 @@ flowchart LR
     R3["/wiki"]
     R4["/journal"]
     R5["/memos"]
-    R6["/cloud + /cloud/doc·sheet·slide/:id"]
     R7["/whiteboard"]
     R8["/auth · /admin · /privacy · /terms · /mockup"]
   end
@@ -55,10 +54,6 @@ flowchart LR
 | `/wiki` | `src/pages/Wiki.tsx` | 마이위키 — 노션 스타일 블록 에디터 + 백업/히스토리 |
 | `/journal` | `src/pages/Journal.tsx` | 일기 — 무드/태그/주간보드/연간 픽셀 |
 | `/memos` | `src/pages/Memos.tsx` | 메모 풀 페이지 (Planner 의 MemoDrawer 와 share store) |
-| `/cloud` | `src/pages/Cloud.tsx` | Google Drive 류 — Doc/Sheet/Slide 에디터 |
-| `/cloud/doc/:id` | `CloudDocEditor.tsx` | Tiptap 문서 |
-| `/cloud/sheet/:id` | `CloudSheetEditor.tsx` | 스프레드시트 |
-| `/cloud/slide/:id` | `CloudSlideEditor.tsx` | 프레젠테이션 |
 | `/whiteboard` | `src/pages/Whiteboard.tsx` | 화이트보드 — 자유 드로잉/도형 |
 | `/auth` · `/admin` | `Auth.tsx` · `Admin.tsx` | Supabase 인증·관리자 |
 | `/mockup` · `/privacy` · `/terms` | — | 정적/실험 페이지 |
@@ -139,13 +134,6 @@ src/components/planner/
 - 스토어: `lib/memoStore.ts` (localStorage) + `lib/memoImageStore.ts` (IndexedDB — 이미지 분리)
 - 전역 단축키: `GlobalMemoHotkey.tsx` (Alt+M)
 
-### `/cloud` — 클라우드 협업 (Doc/Sheet/Slide)
-- 진입: `Cloud.tsx` (드라이브 뷰)
-- 에디터: `CloudDocEditor`, `CloudSheetEditor`, `CloudSlideEditor`
-- 라이브러리: `src/lib/cloudDoc/`, `cloudSheet/`, `cloudSlide/`, `cloudCommon/`, `cloudAi/`
-- API: `api/cloud-ai.ts`, `cloud-ai-stream.ts`
-- 클라이언트: `lib/cloudClient.ts`, hook: `useCloudNodes.ts`
-
 ### `/whiteboard` — 화이트보드
 - `lib/whiteboard/`, `lib/whiteboardStore.ts`, 컴포넌트는 거의 페이지에 임베드
 
@@ -208,7 +196,7 @@ study-vision-extract.ts    ← OCR
 voice-analyze.ts           ← 음성 분석
 voice-generate.ts          ← TTS
 voice-transcribe.ts        ← STT
-cloud-ai.ts · cloud-ai-stream.ts ← 클라우드 에디터 AI
+cloud-ai.ts · cloud-ai-stream.ts ← 앱 공용 AI (lib/ai/quick.ts)
 ```
 공통 모듈: `api/_lib/`
 
@@ -253,11 +241,9 @@ EasterEgg.tsx
 | AI 사용량 뱃지 | `components/UsageStatBadge` |
 | 숫자/바이트/상대시각 포맷 | `lib/formatters` |
 | 디바운스 | `hooks/useDebouncedValue` |
-| 시트 함수 추가 | `lib/cloudSheet/formula.ts` (FUNC_HELP + FUNC_ORDER + helper + new Function 등록 4곳) |
 | 시트 sentinel 패턴 | IMAGE_SENTINEL / SPARKLINE_SENTINEL / AI_SENTINEL / SPILL_SENTINEL / LINK_SENTINEL |
 | 시트 도메인 일관성 | `lib/planner/taskDomain.ts` (할 일/일정 sanitize) — 동일 패턴 |
 | 플래너 시간 키 | `lib/planner/timeKeys.ts` (toDayKey / parseDayKey / shiftDayKey 등) |
-| 피벗 엔진 | `lib/cloudSheet/pivot.ts` + UI `components/cloud/PivotDialog.tsx` |
 
 ---
 
@@ -267,7 +253,7 @@ EasterEgg.tsx
 2. **거대 파일** — `TodayTimeline.tsx` 944줄, `Planner.tsx` 894줄, `TaskScheduleDialog.tsx` 748줄, `Memos.tsx` 1000+줄
 3. **시간 변환 로직 산재** — `Planner.tsx`, `TodayTimeline.tsx`, `transposeTimeToDate`, `nextHalfHourSlot` 등에 흩어짐
 4. **레거시 잔재** — `eventStore` 가 taskStore 로 마이그레이션 진행 중이지만 미완료
-5. **테스트 커버리지** — `recurrence` 등 일부 미커버 (커버: taskStore, habitStats, journalStore, taskDomain, parseNaturalLanguage, timeKeys, formatters, useDebouncedValue, cloudSheet formula/sparkline/xlsx/pivot/aiCell/spill 등 200+ cases)
+5. **테스트 커버리지** — `recurrence` 등 일부 미커버 (커버: taskStore, habitStats, journalStore, taskDomain, parseNaturalLanguage, timeKeys, formatters, useDebouncedValue 등)
 6. **번들 사이즈** — mermaid (530KB), mammoth (500KB) 등 무거운 라이브러리 정적 import. 코드 스플릿 여지
 
 ---

@@ -1,4 +1,9 @@
-# Office Compatibility Roadmap
+# Office Compatibility Roadmap (보관됨 — 2026-07-28 폐기)
+
+> 이 로드맵의 대상이던 클라우드 오피스(문서·시트·슬라이드)는 제거되었다.
+> 되살릴 일이 생기면 git tag `pre-cloud-removal` 시점을 참고할 것.
+> 아래는 당시 계획 원문이다.
+
 
 Goal: make cloud documents, sheets, and slides handle external Office files as product-grade imports and exports, not approximate visual copies.
 

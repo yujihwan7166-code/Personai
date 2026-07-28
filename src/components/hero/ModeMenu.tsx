@@ -270,7 +270,7 @@ export function ModeMenu({
             target.hubId === 'people' ? '/people' :
             target.hubId === 'archive' ? '/archive' :
             target.hubId === 'wiki' ? '/wiki' :
-            target.hubId === 'cloud' ? '/cloud' : null;
+            null;
           if (route) navigate(route);
           break;
         }

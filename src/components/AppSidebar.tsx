@@ -1073,7 +1073,6 @@ export function AppSidebar({
                   try { localStorage.setItem('theme', isDark ? 'light' : 'dark'); } catch { /* noop */ }
                   break;
                 }
-                case 'cloud': navigate('/cloud'); break;
                 case 'favorites':
                 case 'inbox':
                 case 'palette':

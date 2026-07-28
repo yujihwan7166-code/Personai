@@ -1070,7 +1070,7 @@ export function MainModeTabs({
     if (t.kind === 'assistant') { handleSelectAssistantTool(t.cardId); return; }
     if (t.kind === 'life') { handleSelectLifeTool(t.toolId); return; }
     if (t.kind === 'player') { handleSelectPlayerTool(t.toolId); return; }
-    const route: Record<string, string> = { today: '/today', notes: '/notes', wiki: '/wiki', planner: '/planner', journal: '/journal', career: '/career', travel: '/journal?view=travel', people: '/people', archive: '/archive', health: '/health', ticketbook: '/tickets', ledger: '/ledger', rewind: '/rewind', cloud: '/cloud' };
+    const route: Record<string, string> = { today: '/today', notes: '/notes', wiki: '/wiki', planner: '/planner', journal: '/journal', career: '/career', travel: '/journal?view=travel', people: '/people', archive: '/archive', health: '/health', ticketbook: '/tickets', ledger: '/ledger', rewind: '/rewind' };
     const r = route[t.hubId];
     if (r) { setOpen(false); navigate(r); return; }
     // 연결이 없어진 레거시 즐겨찾기(준비중 방 등) — 클릭 시 자동 정리.

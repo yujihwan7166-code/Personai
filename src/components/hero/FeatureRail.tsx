@@ -118,7 +118,7 @@ export function FeatureRail({
         const route =
           target.hubId === 'planner' ? '/planner' :
           target.hubId === 'archive' ? '/archive' :
-          target.hubId === 'cloud' ? '/cloud' : null;
+          null;
         if (route) navigate(route);
         break;
       }
