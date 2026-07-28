@@ -8,7 +8,7 @@ import {
   aiMakeLonger, aiMakeShorter, aiKeyPoints, aiExtractActions, aiFixGrammar,
   aiBuildToc, aiToTable, aiToList, aiToQuestions, aiSuggestTitle, aiCustom,
   type Lang, type Tone,
-} from './ai';
+} from '@/lib/ai/quick';
 
 export type ActionGroup = 'writing' | 'transform' | 'structure';
 

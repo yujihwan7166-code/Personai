@@ -1,5 +1,5 @@
 /** AI 채움(메타데이터) + AI 온디맨드 추천. 실패는 전부 null — UI가 수동 입력/재시도로 처리. */
-import { quickAi, QUICK_MODEL } from '@/lib/cloudDoc/ai';
+import { quickAi, QUICK_MODEL } from '@/lib/ai/quick';
 import { KIND_LABEL, type TicketEntry, type TicketKind } from './ticketStore';
 import type { MediaSearchResult } from './search';
 

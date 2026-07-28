@@ -6,7 +6,7 @@
 
 import type { Editor } from '@tiptap/react';
 import { toast } from '@/hooks/use-toast';
-import { aiContinue } from '@/lib/cloudDoc/ai';
+import { aiContinue } from '@/lib/ai/quick';
 import { pickImage } from './pickImage';
 
 interface SlashItem {

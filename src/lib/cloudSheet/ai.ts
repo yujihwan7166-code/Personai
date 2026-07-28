@@ -3,7 +3,7 @@
  * cloudDoc/ai.ts 의 quickAi 재사용 (OpenRouter 인프라 공유).
  */
 
-import { quickAi, QUICK_MODEL, QUALITY_MODEL } from '@/lib/cloudDoc/ai';
+import { quickAi, QUICK_MODEL, QUALITY_MODEL } from '@/lib/ai/quick';
 import { escapeCsvCell } from '@/lib/csv';
 import { IMAGE_SENTINEL } from './formula';
 

@@ -22,7 +22,7 @@ import { replaceJournalWithSample } from '@/lib/journal/sampleData';
 import { useJournal } from '@/hooks/useJournal';
 import { useJournalStreak } from '@/hooks/useJournalStreak';
 import { journalStore } from '@/services/journalStore';
-import { quickAi } from '@/lib/cloudDoc/ai';
+import { quickAi } from '@/lib/ai/quick';
 import { WEATHER_META, WEATHER_PICK, type JournalEntry, type Weather } from '@/types/journal';
 import { DayItemsBlock } from '@/components/daybook/DayItemsBlock';
 import type { DayItem } from '@/types/daylog';

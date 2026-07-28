@@ -4,7 +4,7 @@
  *  2) aiQuery — 자연어 질의("이번 달 커피 얼마?") → 요약 데이터 기반 한 단락 답변
  * 실패 시 예외 → 호출부(ChatBar)가 안내 문구 폴백.
  */
-import { quickAi, QUICK_MODEL } from '@/lib/cloudDoc/ai';
+import { quickAi, QUICK_MODEL } from '@/lib/ai/quick';
 import type { ParsedEntry } from '@/lib/ledger/parse';
 import type { LedgerCategory, LedgerEntry } from '@/types/ledger';
 import { summarizeMonth, categoryTotals, monthOf } from '@/lib/ledger/stats';

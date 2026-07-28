@@ -7,7 +7,7 @@
  * 모델은 quick (Gemini Flash Lite). 비용·속도 우선.
  */
 
-import { quickAi, QUICK_MODEL } from '@/lib/cloudDoc/ai';
+import { quickAi, QUICK_MODEL } from '@/lib/ai/quick';
 import type { ChatMessage, AiContext } from './types';
 import { SYSTEM_PROMPTS } from './prompts';
 

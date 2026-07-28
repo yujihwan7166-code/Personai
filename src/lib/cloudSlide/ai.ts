@@ -3,7 +3,7 @@
  * cloudDoc/ai.ts 의 quickAi 재사용.
  */
 
-import { quickAi, QUICK_MODEL, QUALITY_MODEL } from '@/lib/cloudDoc/ai';
+import { quickAi, QUICK_MODEL, QUALITY_MODEL } from '@/lib/ai/quick';
 
 interface SlideTextLike { content: string; }
 

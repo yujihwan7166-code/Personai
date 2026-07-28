@@ -5,7 +5,7 @@
  *
  * 실패/오프라인 시 예외를 던지고, 호출부는 키워드 폴백으로 최악 UX 를 피한다.
  */
-import { quickAi, QUICK_MODEL } from '@/lib/cloudDoc/ai';
+import { quickAi, QUICK_MODEL } from '@/lib/ai/quick';
 import type { ArchiveItem } from '@/types/archive';
 
 /** strict JSON 이 아니어도 첫 {..} 블록을 추출해 파싱. 실패 시 null. */

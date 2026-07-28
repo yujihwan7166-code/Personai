@@ -1,10 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-vi.mock('@/lib/cloudDoc/ai', () => ({
+vi.mock('@/lib/ai/quick', () => ({
   quickAi: vi.fn(),
   QUICK_MODEL: 'test-model',
 }));
-import { quickAi } from '@/lib/cloudDoc/ai';
+import { quickAi } from '@/lib/ai/quick';
 import { aiFillEntry, aiRecommend, aiDiscover, aiSuggest, MIN_ENTRIES_FOR_RECO } from '@/lib/tickets/aiFill';
 import type { TicketEntry } from '@/lib/tickets/ticketStore';
 

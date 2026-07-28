@@ -4,7 +4,7 @@
  * 분류는 strict JSON 응답을 요구하고, 파싱 실패 시 원문 그대로 '기타'에
  * 담는 폴백으로 "던지면 무조건 쌓인다"를 보장한다.
  */
-import { QUALITY_MODEL, QUICK_MODEL, quickAi } from '@/lib/cloudDoc/ai';
+import { QUALITY_MODEL, QUICK_MODEL, quickAi } from '@/lib/ai/quick';
 import { FALLBACK_CATEGORY, type SpecItem } from '@/types/career';
 
 export interface ClassifiedSpec {
