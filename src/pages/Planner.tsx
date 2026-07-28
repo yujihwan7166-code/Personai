@@ -27,7 +27,6 @@ import {
   Plus,
   Search,
   Sparkles,
-  Settings,
   X,
 } from 'lucide-react';
 import { MainModeTabs, type MainModeTabsApi } from '@/components/MainModeTabs';
@@ -1744,55 +1743,125 @@ const Planner = () => {
               </div>
             </div>
 
-            <div className="hidden">
-              <button
-                type="button"
-                onClick={goPrev}
-                aria-label="이전"
-                title="이전 (←)"
-                className="inline-flex h-9 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-              >
-                <ChevronLeft className="h-4 w-4" strokeWidth={2.4} />
-              </button>
-              <button
-                type="button"
-                onClick={goToday}
-                aria-label="오늘로"
-                title="오늘로 (T)"
-                className={cn(
-                  'hidden h-9 shrink-0 items-center rounded-full border px-4 text-[13px] font-semibold transition-colors sm:inline-flex',
-                  anchorIsToday
-                    ? 'border-foreground/10 bg-transparent text-foreground/55'
-                    : 'border-primary/25 bg-primary/8 text-primary hover:bg-primary/12',
-                )}
-              >
-                오늘
-              </button>
-              <button
-                type="button"
-                onClick={goNext}
-                aria-label="다음"
-                title="다음 (→)"
-                className="inline-flex h-9 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-              >
-                <ChevronRight className="h-4 w-4" strokeWidth={2.4} />
-              </button>
-            </div>
-
             <div className="hidden flex-1 sm:block" />
 
             <div
               className="relative z-[45] ml-auto flex h-8 shrink-0 items-center gap-1"
               data-planner-header-tools="true"
             >
+              {/* 1단 — 보기 전환. 이 화면이 무엇을 보여주는지를 정하는 것이라 오른쪽 도구 중
+                  가장 무겁게 그린다. 옅은 홈 위의 흰 캡슐 — 앱 공통 세그먼트 문법. */}
+              <div
+                className="hidden h-8 shrink-0 items-center rounded-lg bg-foreground/[0.055] p-0.5 min-[1180px]:inline-flex"
+                role="tablist"
+                aria-label="플래너 보기"
+              >
+                {PLANNER_VIEWS.map((nextView) => {
+                  const meta = PLANNER_VIEW_META[nextView];
+                  const active = nextView === view;
+                  return (
+                    <button
+                      key={nextView}
+                      type="button"
+                      role="tab"
+                      aria-selected={active}
+                      onClick={() => setView(nextView)}
+                      className={cn(
+                        'inline-flex h-7 min-w-8 items-center justify-center rounded-[7px] px-2 text-[12px] leading-none transition-all',
+                        active
+                          ? 'bg-card font-bold text-foreground shadow-[0_1px_4px_hsl(var(--foreground)/0.12)]'
+                          : 'font-semibold text-muted-foreground hover:text-foreground',
+                        nextView === 'habits' && 'min-w-10',
+                      )}
+                      title={`${meta.label} (${meta.shortcut})`}
+                    >
+                      {meta.label}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg bg-foreground/[0.055] px-2.5 text-[12px] font-bold text-foreground transition-colors hover:bg-foreground/[0.085] min-[1180px]:hidden"
+                    aria-label="뷰 선택"
+                    title="뷰 선택"
+                  >
+                    {currentViewMeta.label}
+                    <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={2.2} />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-40">
+                  {PLANNER_VIEWS.map((nextView) => {
+                    const meta = PLANNER_VIEW_META[nextView];
+                    const active = nextView === view;
+                    return (
+                      <DropdownMenuItem
+                        key={nextView}
+                        onSelect={() => setView(nextView)}
+                        className={cn(active && 'bg-primary/10 text-primary')}
+                      >
+                        <span className="flex-1">{meta.label}</span>
+                        <DropdownMenuShortcut>{meta.shortcut}</DropdownMenuShortcut>
+                      </DropdownMenuItem>
+                    );
+                  })}
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              {/* 2단 — 날짜 이동. 보기 안에서 '언제'를 정하는 것이라 한 단 아래.
+                  테두리만 두르고 채우지 않는다 — 옆의 홈(1단)보다 가벼워 보이도록. */}
+              <div
+                className="hidden h-8 shrink-0 items-center rounded-lg border border-foreground/15 p-0.5 sm:inline-flex"
+                aria-label="날짜 이동"
+              >
+                <button
+                  type="button"
+                  onClick={goPrev}
+                  aria-label="이전"
+                  title="이전"
+                  className="inline-flex h-7 w-7 items-center justify-center rounded-[7px] text-muted-foreground transition-colors hover:bg-accent/80 hover:text-foreground"
+                >
+                  <ChevronLeft className="h-3.5 w-3.5" strokeWidth={2.4} />
+                </button>
+                <button
+                  type="button"
+                  onClick={goToday}
+                  aria-label="오늘로"
+                  title="오늘로 (T)"
+                  className={cn(
+                    'inline-flex h-7 min-w-[52px] items-center justify-center rounded-[7px] px-2 text-[12px] font-bold transition-colors',
+                    anchorIsToday
+                      ? 'text-foreground/60 hover:bg-accent/70 hover:text-foreground'
+                      : 'bg-primary/[0.10] text-primary hover:bg-primary/[0.14]',
+                  )}
+                >
+                  오늘
+                </button>
+                <button
+                  type="button"
+                  onClick={goNext}
+                  aria-label="다음"
+                  title="다음"
+                  className="inline-flex h-7 w-7 items-center justify-center rounded-[7px] text-muted-foreground transition-colors hover:bg-accent/80 hover:text-foreground"
+                >
+                  <ChevronRight className="h-3.5 w-3.5" strokeWidth={2.4} />
+                </button>
+              </div>
+
+              {/* 여기서부터는 종류가 다르다 — 무엇을/언제를 보는가(왼쪽) 와 곁들이는 도구(오른쪽) */}
+              <span aria-hidden className="mx-0.5 hidden h-4 w-px shrink-0 bg-foreground/12 sm:block" />
+
               <button
                 type="button"
                 onClick={() => setHeaderSearchOpen(true)}
                 className={cn(
                   'hidden h-8 w-8 shrink-0 items-center justify-center text-muted-foreground transition-colors hover:text-foreground focus:outline-none focus-visible:outline-none focus-visible:ring-0 sm:inline-flex',
                   headerSearchOpen
-                    ? 'rounded-l-lg rounded-r-none border border-r-0 border-foreground/30 bg-card'
-                    : 'rounded-lg hover:bg-card',
+                    ? 'rounded-l-lg rounded-r-none border border-r-0 border-foreground/20 bg-card'
+                    : 'rounded-lg hover:bg-accent',
                 )}
                 title="검색 (/ 또는 Ctrl/Cmd+K)"
                 aria-label="플래너 검색"
@@ -1801,9 +1870,9 @@ const Planner = () => {
               </button>
               <div
                 className={cn(
-                  'hidden h-8 shrink-0 items-center overflow-hidden rounded-r-lg rounded-l-none border border-l-0 bg-card shadow-[0_6px_16px_-14px_hsl(var(--foreground)/0.35)] transition-all duration-200 ease-out sm:inline-flex',
+                  'hidden h-8 shrink-0 items-center overflow-hidden rounded-r-lg rounded-l-none border border-l-0 bg-card transition-all duration-200 ease-out sm:inline-flex',
                   headerSearchOpen
-                    ? 'w-[248px] border-foreground/30 px-2 opacity-100'
+                    ? 'w-[248px] border-foreground/20 px-2 opacity-100'
                     : 'w-0 border-transparent px-0 opacity-0',
                 )}
                 role="search"
@@ -1980,119 +2049,13 @@ const Planner = () => {
                   </div>
                 </div>
               )}
-              <button
-                type="button"
-                onClick={() => notify.info('플래너 설정은 준비 중이에요', { duration: 1400 })}
-                className="hidden h-8 w-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-card hover:text-foreground sm:inline-flex"
-                title="설정"
-                aria-label="플래너 설정"
-              >
-                <Settings className="h-4 w-4" strokeWidth={2.1} />
-              </button>
-
-              <div
-                className="hidden h-8 shrink-0 items-center rounded-lg border border-foreground/35 bg-card p-0.5 shadow-[0_6px_16px_-14px_hsl(var(--foreground)/0.35)] sm:inline-flex"
-                aria-label="날짜 이동"
-              >
-                <button
-                  type="button"
-                  onClick={goPrev}
-                  aria-label="이전"
-                  title="이전"
-                  className="inline-flex h-7 w-7 items-center justify-center rounded-[7px] text-muted-foreground transition-colors hover:bg-accent/80 hover:text-foreground"
-                >
-                  <ChevronLeft className="h-3.5 w-3.5" strokeWidth={2.4} />
-                </button>
-                <button
-                  type="button"
-                  onClick={goToday}
-                  aria-label="오늘로"
-                  title="오늘로 (T)"
-                  className={cn(
-                    'inline-flex h-7 min-w-[52px] items-center justify-center rounded-[7px] px-2 text-[12px] font-bold transition-colors',
-                    anchorIsToday
-                      ? 'text-foreground/60 hover:bg-accent/70 hover:text-foreground'
-                      : 'bg-primary/[0.08] text-primary shadow-[0_1px_4px_hsl(var(--foreground)/0.08)] hover:bg-primary/[0.12]',
-                  )}
-                >
-                  오늘
-                </button>
-                <button
-                  type="button"
-                  onClick={goNext}
-                  aria-label="다음"
-                  title="다음"
-                  className="inline-flex h-7 w-7 items-center justify-center rounded-[7px] text-muted-foreground transition-colors hover:bg-accent/80 hover:text-foreground"
-                >
-                  <ChevronRight className="h-3.5 w-3.5" strokeWidth={2.4} />
-                </button>
-              </div>
-
-              <div
-                className="hidden h-8 shrink-0 items-center rounded-lg border border-foreground/35 bg-card p-0.5 shadow-[0_6px_16px_-14px_hsl(var(--foreground)/0.35)] min-[1180px]:inline-flex"
-                role="tablist"
-                aria-label="플래너 보기"
-              >
-                {PLANNER_VIEWS.map((nextView) => {
-                  const meta = PLANNER_VIEW_META[nextView];
-                  const active = nextView === view;
-                  return (
-                    <button
-                      key={nextView}
-                      type="button"
-                      role="tab"
-                      aria-selected={active}
-                      onClick={() => setView(nextView)}
-                      className={cn(
-                        'inline-flex h-7 min-w-8 items-center justify-center rounded-[7px] px-2 text-[12px] font-semibold leading-none transition-all',
-                        active
-                          ? 'border border-primary/20 bg-primary/[0.075] text-primary'
-                          : 'text-muted-foreground hover:bg-accent/80 hover:text-foreground',
-                        nextView === 'habits' && 'min-w-10',
-                      )}
-                      title={`${meta.label} (${meta.shortcut})`}
-                    >
-                      {meta.label}
-                    </button>
-                  );
-                })}
-              </div>
-
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button
-                    type="button"
-                    className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg border border-foreground/35 bg-card px-2 text-[12px] font-semibold text-foreground shadow-[0_6px_16px_-14px_hsl(var(--foreground)/0.35)] transition-colors hover:bg-accent min-[1180px]:hidden"
-                    aria-label="뷰 선택"
-                    title="뷰 선택"
-                  >
-                    {currentViewMeta.label}
-                    <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={2.2} />
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-40">
-                  {PLANNER_VIEWS.map((nextView) => {
-                    const meta = PLANNER_VIEW_META[nextView];
-                    const active = nextView === view;
-                    return (
-                      <DropdownMenuItem
-                        key={nextView}
-                        onSelect={() => setView(nextView)}
-                        className={cn(active && 'bg-primary/10 text-primary')}
-                      >
-                        <span className="flex-1">{meta.label}</span>
-                        <DropdownMenuShortcut>{meta.shortcut}</DropdownMenuShortcut>
-                      </DropdownMenuItem>
-                    );
-                  })}
-                </DropdownMenuContent>
-              </DropdownMenu>
-
               {!aiPanelOpen && (
                 <button
                   type="button"
                   onClick={() => setAiPanelOpen(true)}
-                  className="inline-flex h-8 w-[94px] shrink-0 items-center justify-center gap-1.5 rounded-lg border border-foreground/30 bg-card px-2 text-[12px] font-semibold text-muted-foreground shadow-[0_6px_16px_-14px_hsl(var(--foreground)/0.35)] transition-colors hover:border-foreground/40 hover:bg-primary/5 hover:text-primary"
+                  /* 3단 — 곁들이는 도구. 패널 여는 손잡이일 뿐이라 검색 아이콘과 같은 무게로.
+                     예전엔 테두리·그림자에 고정 폭 94px 이라 제일 오른쪽에서 제일 셌다. */
+                  className="inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-lg px-2 text-[12px] font-semibold text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
                   title="보조 도구 열기"
                   aria-label="보조 도구 열기"
                 >
