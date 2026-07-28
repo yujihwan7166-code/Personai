@@ -315,10 +315,21 @@ const GoalCard = ({
               title="삭제"
               danger
               onClick={() => {
-                if (window.confirm(`${goal.title} 목표를 삭제할까요? 작업은 남고 목표 연결만 사라집니다.`)) {
-                  item.tasks.forEach((task) => taskStore.update(task.id, { goalId: undefined, milestoneId: undefined }));
-                  goalStore.remove(goal.id);
-                }
+                if (!window.confirm(`${goal.title} 목표를 삭제할까요? 작업은 남고 목표 연결만 사라집니다.`)) return;
+                /* 되돌리기 대비 — 마일스톤과 끊어낸 작업의 연결을 미리 적어둔다. */
+                const milestones = goalStore.listMilestones(goal.id);
+                const links = item.tasks.map((t) => ({ id: t.id, goalId: t.goalId, milestoneId: t.milestoneId }));
+                links.forEach((l) => taskStore.update(l.id, { goalId: undefined, milestoneId: undefined }));
+                goalStore.remove(goal.id);
+                notify.success(`'${goal.title}' 목표를 지웠어요`, {
+                  action: {
+                    label: '되돌리기',
+                    onClick: () => {
+                      goalStore.restore(goal, milestones);
+                      links.forEach((l) => taskStore.update(l.id, { goalId: l.goalId, milestoneId: l.milestoneId }));
+                    },
+                  },
+                });
               }}
             >
               <Trash2 className="h-3.5 w-3.5" />

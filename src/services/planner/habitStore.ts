@@ -116,6 +116,13 @@ export const habitStore = {
     commit(safeRead().filter((h) => h.id !== id));
   },
 
+  /** 지운 습관을 그대로 되돌린다 — id·체크인 기록까지 통째로. 이미 있으면 아무 일도 없다. */
+  restore(habit: Habit): void {
+    const all = safeRead();
+    if (all.some((h) => h.id === habit.id)) return;
+    commit([...all, habit]);
+  },
+
   togglePinned(id: string): void {
     const h = this.find(id);
     if (!h) return;

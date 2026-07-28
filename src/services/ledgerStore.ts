@@ -11,6 +11,23 @@ import {
 } from '@/types/ledger';
 import { newId } from '@/lib/idGenerator';
 
+/** 카테고리 삭제를 되돌리기 위한 스냅샷 — 무엇이 어디로 옮겨갔는지만 적어둔다. */
+export interface LedgerCategoryUndo {
+  category: LedgerCategory;
+  entryIds: string[];
+  ruleIds: string[];
+  dictWords: string[];
+  budget?: number;
+}
+
+/** 예산(버킷) 삭제를 되돌리기 위한 스냅샷. */
+export interface LedgerBucketUndo {
+  bucket: LedgerBucket;
+  categoryIds: string[];
+  entryIds: string[];
+  budget?: number;
+}
+
 const ENTRIES_KEY = 'ledger.entries.v1';
 const RECURRING_KEY = 'ledger.recurring.v1';
 const BUDGETS_KEY = 'ledger.budgets.v1';
@@ -334,8 +351,18 @@ export const ledgerStore = {
    * 건별 지정이 풀린 건은 카테고리의 버킷으로 돌아간다. 갈 곳 없는 지출은 안 만든다.
    * 이 버킷에 잡아둔 예산 금액도 함께 지워진다 — 호출 전 확인창에서 반드시 고지할 것.
    */
-  removeBucket(id: string): void {
-    if (DEFAULT_BUCKETS.some((d) => d.id === id)) return;
+  removeBucket(id: string): LedgerBucketUndo | undefined {
+    if (DEFAULT_BUCKETS.some((d) => d.id === id)) return undefined;
+    const target = this.listBuckets().find((b) => b.id === id);
+    if (!target) return undefined;
+    /* 되돌리기 스냅샷 — 예산 자체와 딸려 풀린 것들의 id 를 적어둔다. */
+    const undo: LedgerBucketUndo = {
+      bucket: target,
+      categoryIds: Object.entries(readObj<Record<string, string>>(CATBUCKET_KEY, {}))
+        .filter(([, bid]) => bid === id).map(([cid]) => cid),
+      entryIds: readArr(ENTRIES_KEY, normEntry).filter((e) => e.bucketId === id).map((e) => e.id),
+      budget: this.getBudgets()[id],
+    };
     write(BUCKETS_KEY, this.listBuckets().filter((b) => !b.builtin && b.id !== id));
     const catMap = readObj<Record<string, string>>(CATBUCKET_KEY, {});
     for (const [cid, bid] of Object.entries(catMap)) if (bid === id) delete catMap[cid];
@@ -346,6 +373,28 @@ export const ledgerStore = {
     }
     const budgets = this.getBudgets();
     if (id in budgets) { delete budgets[id]; write(BUDGETS_KEY, budgets); }
+    return undo;
+  },
+
+  /** removeBucket 되돌리기 — 예산을 되살리고 풀렸던 카테고리·건별 지정·한도를 제자리로. */
+  restoreBucket(u: LedgerBucketUndo): void {
+    const id = u.bucket.id;
+    const buckets = this.listBuckets();
+    if (!buckets.some((b) => b.id === id)) {
+      write(BUCKETS_KEY, [...buckets.filter((b) => !b.builtin), u.bucket]);
+    }
+    if (u.categoryIds.length) {
+      const map = readObj<Record<string, string>>(CATBUCKET_KEY, {});
+      for (const cid of u.categoryIds) map[cid] = id;
+      write(CATBUCKET_KEY, map);
+    }
+    if (u.entryIds.length) {
+      const ids = new Set(u.entryIds);
+      write(ENTRIES_KEY, readArr(ENTRIES_KEY, normEntry).map((e) => (ids.has(e.id) ? { ...e, bucketId: id } : e)));
+    }
+    if (u.budget !== undefined) {
+      write(BUDGETS_KEY, { ...this.getBudgets(), [id]: u.budget });
+    }
   },
 
   /** 카테고리를 어느 예산으로 셀지 — 기본 카테고리도 바꿀 수 있게 덮어쓰기 맵으로 둔다. */
@@ -398,12 +447,20 @@ export const ledgerStore = {
    * 쓰던 내역·고정지출은 지우지 않고 fallback(기본 '기타')으로 옮긴다 — 돈 기록 자체는 절대 잃지 않는다.
    * 이 카테고리를 가리키던 분류 규칙은 함께 지운다(가리킬 곳이 없어지므로).
    */
-  removeCategory(id: string, fallbackId = 'etc'): { moved: number } | null {
+  removeCategory(id: string, fallbackId = 'etc'): { moved: number; undo: LedgerCategoryUndo } | null {
     const target = this.listCategories().find((c) => c.id === id);
     if (!target?.custom) return null;
 
     const entries = readArr(ENTRIES_KEY, normEntry);
     const moved = entries.filter((e) => e.categoryId === id).length;
+    /* 되돌리기 스냅샷 — 옮겨간 것들의 id 만 적어두면 제자리로 돌릴 수 있다. */
+    const undo: LedgerCategoryUndo = {
+      category: target,
+      entryIds: entries.filter((e) => e.categoryId === id).map((e) => e.id),
+      ruleIds: readArr(RECURRING_KEY, normRule).filter((r) => r.categoryId === id).map((r) => r.id),
+      dictWords: Object.entries(this.getKeywordDict()).filter(([, cid]) => cid === id).map(([w]) => w),
+      budget: this.getCatBudgets()[id],
+    };
     if (moved > 0) write(ENTRIES_KEY, entries.map((e) => (e.categoryId === id ? { ...e, categoryId: fallbackId } : e)));
 
     const rules = readArr(RECURRING_KEY, normRule);
@@ -418,7 +475,30 @@ export const ledgerStore = {
     this.setCatBudget(id, undefined); // 가리킬 카테고리가 사라진 한도는 남기지 않는다
 
     write(CATEGORIES_KEY, this.listCategories().filter((c) => c.custom && c.id !== id));
-    return { moved };
+    return { moved, undo };
+  },
+
+  /** removeCategory 되돌리기 — 카테고리를 되살리고 옮겨갔던 내역·고정지출·사전·한도를 제자리로. */
+  restoreCategory(u: LedgerCategoryUndo): void {
+    const cats = this.listCategories();
+    if (!cats.some((c) => c.id === u.category.id)) {
+      write(CATEGORIES_KEY, [...cats.filter((c) => c.custom), u.category]);
+    }
+    const cid = u.category.id;
+    if (u.entryIds.length) {
+      const ids = new Set(u.entryIds);
+      write(ENTRIES_KEY, readArr(ENTRIES_KEY, normEntry).map((e) => (ids.has(e.id) ? { ...e, categoryId: cid } : e)));
+    }
+    if (u.ruleIds.length) {
+      const ids = new Set(u.ruleIds);
+      write(RECURRING_KEY, readArr(RECURRING_KEY, normRule).map((r) => (ids.has(r.id) ? { ...r, categoryId: cid } : r)));
+    }
+    if (u.dictWords.length) {
+      const dict = { ...this.getKeywordDict() };
+      for (const w of u.dictWords) dict[w] = cid;
+      write(DICT_KEY, dict);
+    }
+    if (u.budget !== undefined) this.setCatBudget(cid, u.budget);
   },
 
   // ── 자산·스냅샷 (2차) ──

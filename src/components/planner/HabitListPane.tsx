@@ -11,6 +11,7 @@ import {
   Archive, ArchiveRestore, ArrowUpDown, Flame, MoreHorizontal, Pin, Plus, Search, Trash2, Zap,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { notify } from '@/lib/notify';
 import { TASK_LIST_COLORS, type TaskListColor } from '@/types/planner';
 import type { Habit, HabitCheckin, HabitFreq } from '@/types/habit';
 import { habitCheckinStore } from '@/services/planner/habitCheckinStore';
@@ -561,11 +562,12 @@ const ArchivePopoverBody = ({
                     <button
                       type="button"
                       onClick={() => {
-                        if (typeof window !== 'undefined' && window.confirm(
-                          `"${habit.title}" 을(를) 영구 삭제할까요?\n체크인 기록도 함께 사라져 복구할 수 없어요.`,
-                        )) {
-                          habitStore.remove(habit.id);
-                        }
+                        if (typeof window === 'undefined') return;
+                        if (!window.confirm(`"${habit.title}" 을(를) 영구 삭제할까요?\n체크인 기록도 함께 사라집니다.`)) return;
+                        habitStore.remove(habit.id);
+                        notify.success(`'${habit.title}' 습관을 지웠어요`, {
+                          action: { label: '되돌리기', onClick: () => habitStore.restore(habit) },
+                        });
                       }}
                       aria-label="영구 삭제"
                       title="영구 삭제"

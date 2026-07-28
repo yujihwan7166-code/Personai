@@ -8,6 +8,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ClipboardPaste } from 'lucide-react';
 import { toast } from 'sonner';
+import { notify } from '@/lib/notify';
 import type { LedgerData } from '@/hooks/useLedger';
 import { ledgerStore, todayKey } from '@/services/ledgerStore';
 import { monthOf, summarizeMonth } from '@/lib/ledger/stats';
@@ -118,11 +119,19 @@ export function EntriesView({ data, onEdit, initialMonth, focusDate, onFocusCons
     setSel([]);
   };
 
+  /* 지운 것을 통째로 들고 있다가 알림의 '되돌리기' 로 되꽂는다.
+     확인창은 누르기 전을 막는 장치라, 이미 누른 사람에게는 도움이 안 된다. */
   const bulkDelete = () => {
-    if (!window.confirm(`선택한 ${sel.length}건을 지울까요? 되돌릴 수 없어요.`)) return;
+    if (!window.confirm(`선택한 ${sel.length}건을 지울까요?`)) return;
+    const gone = entries.filter((e) => sel.includes(e.id));
     for (const id of sel) ledgerStore.removeEntry(id);
-    toast.success(`${sel.length}건을 지웠어요`);
     setSel([]);
+    notify.success(`${gone.length}건을 지웠어요`, {
+      action: {
+        label: '되돌리기',
+        onClick: () => ledgerStore.addEntries(gone.map(({ id: _id, createdAt: _c, ...rest }) => rest)),
+      },
+    });
   };
 
   const rowPad = compact ? '8px 16px' : '12px 16px';

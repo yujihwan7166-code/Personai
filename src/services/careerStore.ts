@@ -469,6 +469,13 @@ export const careerStore = {
     safeWrite(readItems().filter((e) => e.id !== id), null);
   },
 
+  /** 뺀 카드를 그대로 되돌린다 — id·소속 섹션까지 통째로. */
+  restoreItem(item: SpecItem): void {
+    const all = readItems();
+    if (all.some((e) => e.id === item.id)) return;
+    safeWrite([...all, item], null);
+  },
+
   /** 빈 카테고리 정리 — 활성 보드에서 항목이 하나도 없는 섹션 제거 (다른 보드는 건드리지 않음). */
   pruneEmptyCategories(): void {
     const active = readActiveBoardId();

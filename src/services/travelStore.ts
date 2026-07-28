@@ -126,4 +126,11 @@ export const travelStore = {
   removeTrip(id: string): void {
     writeList(TRIPS_KEY, readTrips().filter((t) => t.id !== id));
   },
+
+  /** 지운 여행을 그대로 되돌린다 — id 유지라 하루 기록과의 연결도 그대로. */
+  restoreTrip(trip: Trip): void {
+    const all = readTrips();
+    if (all.some((t) => t.id === trip.id)) return;
+    writeList(TRIPS_KEY, [...all, trip]);
+  },
 };

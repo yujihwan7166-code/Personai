@@ -310,6 +310,20 @@ export function removeTab(noteId: string, tabId: string): void {
   });
 }
 
+/**
+ * 지운 탭을 원래 자리에 되꽂는다 — 삭제 알림의 '되돌리기'가 쓴다.
+ * 화이트보드 탭은 내용이 tldraw 쪽(IndexedDB)에 탭 id 로 남아 있어서,
+ * 같은 id 로 되꽂기만 해도 그림까지 그대로 돌아온다.
+ */
+export function restoreTab(noteId: string, item: TabItem, atIndex: number): void {
+  patchNote(noteId, (n) => {
+    if (n.items.some((it) => it.id === item.id)) return n;   // 이미 있으면 중복 방지
+    const items = [...n.items];
+    items.splice(Math.min(Math.max(atIndex, 0), items.length), 0, item);
+    return { ...n, items };
+  });
+}
+
 /** 탭 순서 이동 — tabId 를 toIndex 위치로. 범위 밖이면 무시. */
 export function reorderTab(noteId: string, tabId: string, toIndex: number): void {
   patchNote(noteId, (n) => {

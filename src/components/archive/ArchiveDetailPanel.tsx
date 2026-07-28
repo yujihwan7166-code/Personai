@@ -125,11 +125,24 @@ export function ArchiveDetailPanel({ item, collections, closing, onClose }: Prop
     }
   };
 
-  /* 첨부 빼기는 원본까지 지운다 — 되돌릴 수 없으니 한 번 묻는다(삭제와 같은 규칙). */
+  /* 첨부 빼기 — 원본 삭제를 8.5초 미뤄두고 그 동안 되돌릴 수 있게 한다.
+     (알림은 8초까지 떠 있다. 원본을 먼저 지우면 되돌려도 빈 껍데기만 돌아온다.) */
   const detach = (a: ArchiveAttachment) => {
-    if (!window.confirm(`'${a.name}' 첨부를 뺄까요?\n원본 파일도 함께 지워집니다.`)) return;
-    void deleteArchiveBlob(a.ref);
+    if (!window.confirm(`'${a.name}' 첨부를 뺄까요?`)) return;
+    const at = attachments.findIndex((x) => x.ref === a.ref);
     writeAttachments(attachments.filter((x) => x.ref !== a.ref));
+    const purge = window.setTimeout(() => { void deleteArchiveBlob(a.ref); }, 8500);
+    notify.success(`'${a.name}' 첨부를 뺐어요`, {
+      action: {
+        label: '되돌리기',
+        onClick: () => {
+          window.clearTimeout(purge);
+          const next = attachments.filter((x) => x.ref !== a.ref);
+          next.splice(Math.max(at, 0), 0, a);
+          writeAttachments(next);
+        },
+      },
+    });
   };
 
   /* 저장 — onBlur 커밋은 그대로 두고, 누를 수 있는 자리를 하나 만든다.
@@ -141,14 +154,20 @@ export function ArchiveDetailPanel({ item, collections, closing, onClose }: Prop
     notify.success('저장했어요');
   };
 
-  /* 항목 삭제는 첨부 원본까지 함께 지우고 되돌릴 수 없다 — 반드시 한 번 묻는다.
-   * (컬렉션 관리 삭제와 같은 confirm 패턴) */
+  /* 항목 삭제 — 첨부 원본 정리는 미뤄두고 그 사이에 되돌릴 수 있게 한다. */
   const remove = () => {
     const attached = item.blobRef ? `\n첨부한 ${item.fileName ?? '파일'}도 함께 지워져요.` : '';
-    if (!confirm(`'${item.title}'을(를) 삭제할까요?${attached}\n\n되돌릴 수 없어요.`)) return;
-    archiveStore.removeItem(item.id);
-    notify.success('삭제했어요');
+    if (!confirm(`'${item.title}'을(를) 삭제할까요?${attached}`)) return;
+    const gone = archiveStore.removeItem(item.id, { keepBlobs: true });
     onClose();
+    if (!gone) return;
+    const purge = window.setTimeout(() => archiveStore.purgeBlobsOf(gone), 8500);
+    notify.success(`'${gone.title}'을(를) 지웠어요`, {
+      action: {
+        label: '되돌리기',
+        onClick: () => { window.clearTimeout(purge); archiveStore.restoreItem(gone); },
+      },
+    });
   };
 
   return (

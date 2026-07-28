@@ -346,12 +346,18 @@ export default function Journal() {
     journalStore.update(e.id, { starred: !e.starred });
     setStarred(!e.starred);
   };
+  /* 지운 일기를 들고 있다가 되돌린다. id 는 새로 나오지만 날짜·본문·사진이
+     전부 담긴 채로 돌아오므로 사용자에게는 같은 일기다. */
   const handleDelete = () => {
     const e = journalStore.listByDate(selectedDate)[0];
     if (!e || !window.confirm('이 일기를 삭제할까요?')) return;
     journalStore.remove(e.id);
     setSelectedDate(todayKey);
     setDetailOpen(false);
+    const { id: _id, createdAt: _c, updatedAt: _u, ...rest } = e;
+    notify.success('일기를 지웠어요', {
+      action: { label: '되돌리기', onClick: () => { journalStore.add(rest); } },
+    });
   };
   const goWriteToday = () => { setSelectedDate(todayKey); setCalAnchor(new Date()); setEditing(true); setDetailOpen(true); setTab('write'); };
   // 일기가 없는 날짜(하루 기록만 있는 날)는 에디터로 — editing=false 인 채 열면 자동저장이 안 도는 "죽은 에디터"가 된다
@@ -729,7 +735,7 @@ export default function Journal() {
                         type="button"
                         onClick={() => setRecentFilter(k)}
                         className={cn(
-                          'flex h-8 items-center rounded-[6px] px-3.5 text-[13.5px] transition-colors',
+                          'flex h-[34px] items-center rounded-[6px] px-3.5 text-[13.5px] transition-colors',
                           recentFilter === k ? 'bg-white font-semibold text-[#23262b] shadow-sm dark:bg-white/15' : 'font-medium text-[#6b6493] hover:text-[#23262b]',
                         )}
                       >
@@ -1108,9 +1114,8 @@ export default function Journal() {
                         'inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12.5px] font-semibold transition-colors',
                         on ? 'bg-[hsl(var(--cream-accent))] text-white'
                           : empty ? 'cursor-not-allowed text-[hsl(var(--cream-muted))]/40'
-                          : 'bg-[hsl(var(--cream-card))] text-[hsl(var(--cream-ink))]/75 hover:bg-[hsl(var(--cream-accent))]/10',
+                          : 'border border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))] text-[hsl(var(--cream-ink))]/75 hover:bg-[hsl(var(--cream-accent))]/10',
                       )}
-                      style={!on && !empty ? { boxShadow: 'inset 0 0 0 1px hsl(var(--cream-line))' } : undefined}
                     >
                       <span aria-hidden>{l.emoji}</span>{l.label}
                       {!empty && <span className={cn('tabular-nums', on ? 'text-white/70' : 'text-[hsl(var(--cream-muted))]')}>{l.entries.length}</span>}

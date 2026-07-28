@@ -18,6 +18,7 @@ import { daylogStore } from '@/services/daylogStore';
 import { useDaylogRange } from '@/hooks/useDaylog';
 import { TravelMap, type MapPin as TravelMapPin } from '@/components/travel/TravelMap';
 import { agoLabel, escapeHtml } from '@/lib/travel/format';
+import { fmtDateWithWeekday } from '@/lib/dateFormat';
 import {
   nightsLabel, todayKey, tripDays, tripStatus, diffDays, type Trip,
 } from '@/types/travel';
@@ -44,11 +45,7 @@ const DAY_COLORS = [
 ];
 const dayColor = (i: number) => DAY_COLORS[i % DAY_COLORS.length];
 
-const WEEKDAY = ['일', '월', '화', '수', '목', '금', '토'];
-const dayHeader = (date: string) => {
-  const d = new Date(`${date}T00:00:00`);
-  return `${d.getMonth() + 1}.${d.getDate()} (${WEEKDAY[d.getDay()]})`;
-};
+const dayHeader = (date: string) => fmtDateWithWeekday(new Date(`${date}T00:00:00`));
 
 async function pickPhoto(file: File | undefined): Promise<string | null> {
   if (!file) return null;
@@ -130,7 +127,7 @@ export function TripDetail({ trip, onBack }: { trip: Trip; onBack: () => void })
     travelStore.removeTrip(trip.id);
     notify.success('여행을 지웠어요', {
       description: '하루 기록과 사진은 날짜에 그대로 남아 있어요.',
-      duration: 2600,
+      action: { label: '되돌리기', onClick: () => travelStore.restoreTrip(trip) },
     });
     onBack();
   };
@@ -478,7 +475,7 @@ function RecordComposer({ date, color, onClose }: { trip: Trip; date: string; co
                 type="button"
                 onClick={() => setMealSlot(s)}
                 className={cn(
-                  'rounded-full px-2 py-0.5 text-[11px] font-medium transition-colors',
+                  'rounded-full px-2 py-1 text-[11.5px] font-medium transition-colors',
                   s === mealSlot
                     ? 'bg-[hsl(var(--travel-teal))]/12 font-bold text-[hsl(var(--travel-teal))]'
                     : 'text-muted-foreground hover:text-foreground',

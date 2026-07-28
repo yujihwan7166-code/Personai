@@ -9,6 +9,7 @@ import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, v
 import { CSS } from '@dnd-kit/utilities';
 import { GripVertical, Pencil, Trash2, Plus, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { notify } from '@/lib/notify';
 import { FALLBACK_COLLECTION_KEY, type ArchiveCollection } from '@/types/archive';
 import { archiveStore } from '@/services/archiveStore';
 import { ArchiveCollectionEditor } from './ArchiveCollectionEditor';
@@ -95,7 +96,11 @@ export function ArchiveCollectionManager({ open, onClose, collections, counts }:
       ? `'${c.name}' 컬렉션을 삭제할까요?\n\n안의 항목 ${n}개는 '기타'로 옮겨져요.`
       : `'${c.name}' 컬렉션을 삭제할까요?`;
     if (!confirm(msg)) return;
-    archiveStore.removeCollectionReassign(c.id);
+    const undo = archiveStore.removeCollectionReassign(c.id);
+    if (!undo) return;
+    notify.success(`'${c.name}' 컬렉션을 지웠어요`, {
+      action: { label: '되돌리기', onClick: () => archiveStore.restoreCollection(undo) },
+    });
   };
 
   const body = (

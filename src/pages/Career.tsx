@@ -430,7 +430,9 @@ function BoardLedger() {
 
   const removeItem = (item: SpecItem) => {
     careerStore.removeItem(item.id);
-    notify.success('원고에서 뺐어요');
+    notify.success('원고에서 뺐어요', {
+      action: { label: '되돌리기', onClick: () => careerStore.restoreItem(item) },
+    });
   };
 
   const onDropToCategory = (event: DragEvent, categoryId: string) => {

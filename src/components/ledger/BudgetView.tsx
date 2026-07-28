@@ -12,6 +12,7 @@ import { ledgerStore, todayKey } from '@/services/ledgerStore';
 import { budgetBasis, bucketSpent, monthOf } from '@/lib/ledger/stats';
 import type { BudgetBucket } from '@/types/ledger';
 import { C, KRW, parseAmount } from './theme';
+import { notify } from '@/lib/notify';
 
 /** 배분 막대 색 — 버킷 수가 정해져 있지 않으므로 순서대로 돌려 쓴다. */
 const ALLOC_RING = [C.navy, C.navyMid, C.navyPale, '#7C8AA6', '#A9B4C6', '#5C6B86'];
@@ -234,7 +235,11 @@ export function BudgetView({ data }: { data: LedgerData }) {
                       if (catCount > 0) lines.push(`붙어 있던 카테고리 ${catCount}개는 원래 예산으로 돌아갑니다.`);
                       if (pinned > 0) lines.push(`건별로 이 예산에 넣어둔 ${pinned}건은 지정이 풀립니다.`);
                       if (!window.confirm(lines.join('\n'))) return;
-                      ledgerStore.removeBucket(b);
+                      const undo = ledgerStore.removeBucket(b);
+                      if (!undo) return;
+                      notify.success(`'${name}' 예산을 지웠어요`, {
+                        action: { label: '되돌리기', onClick: () => ledgerStore.restoreBucket(undo) },
+                      });
                     }}
                     style={{ ...smallBtn, height: 22, width: 24, padding: 0, color: C.red, display: 'grid', placeItems: 'center' }}>
                     <Trash2 style={{ width: 11, height: 11 }} />
@@ -250,7 +255,7 @@ export function BudgetView({ data }: { data: LedgerData }) {
                     return (
                       <button key={c.id} type="button" onClick={() => ledgerStore.setCategoryBucket(c.id, b)}
                         style={{
-                          height: 26, padding: '0 9px', borderRadius: 999, cursor: 'pointer', fontSize: 11.5, fontWeight: 600,
+                          height: 28, padding: '0 9px', borderRadius: 999, cursor: 'pointer', fontSize: 11.5, fontWeight: 600,
                           border: `1px solid ${on ? 'transparent' : C.line}`,
                           background: on ? C.navy : '#fff', color: on ? '#fff' : C.ink4,
                         }}>

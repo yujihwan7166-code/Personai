@@ -18,7 +18,7 @@ import { NoteEditor } from '@/components/notes/NoteEditor';
 import { BoardEditor } from '@/components/notes/BoardEditor';
 import { SheetEditor } from '@/components/notes/SheetEditor';
 import {
-  useNotes, createNote, updateNoteTitle, updateTab, addTab, removeTab, reorderTab, moveTabToNote, deleteNote,
+  useNotes, createNote, updateNoteTitle, updateTab, addTab, removeTab, restoreTab, reorderTab, moveTabToNote, deleteNote,
   noteDisplayTitle, notePlainText, emptyMemoValue,
   toggleFavorite, sortedFavorites, moveFavorite, setNoteEmoji, addNoteTag, removeNoteTag,
   deleteTagEverywhere, createTag, useTagRegistry,
@@ -144,17 +144,28 @@ const Notes = () => {
     setAddOpen(false);
   };
 
+  /* 되돌리기 — 지운 탭과 그 자리를 들고 있다가 같은 id 로 되꽂는다.
+     화이트보드는 내용이 tldraw(IndexedDB)에 탭 id 로 남아 있어서 그림까지 돌아온다. */
   const handleRemoveTab = (tabId: string) => {
     if (!active || active.items.length <= 1) return;
     const tab = active.items.find((t) => t.id === tabId);
-    const label = tab?.type === 'board' ? '화이트보드' : tab?.type === 'sheet' ? '시트' : '노트';
-    if (!window.confirm(`'${tab?.name ?? label}' 탭을 삭제할까요? 내용도 함께 사라집니다.`)) return;
+    if (!tab) return;
+    const label = tab.type === 'board' ? '화이트보드' : tab.type === 'sheet' ? '시트' : '노트';
+    if (!window.confirm(`'${tab.name ?? label}' 탭을 삭제할까요?`)) return;
+    const noteId = active.id;
+    const atIndex = active.items.findIndex((t) => t.id === tabId);
     if (tabId === activeTabId) {
       const rest = active.items.filter((t) => t.id !== tabId);
       setActiveTabId(rest[0]?.id ?? null);
     }
-    removeTab(active.id, tabId);
+    removeTab(noteId, tabId);
     setTabMenuFor(null);
+    notify.success(`'${tab.name ?? label}' 탭을 지웠어요`, {
+      action: {
+        label: '되돌리기',
+        onClick: () => { restoreTab(noteId, tab, atIndex); setActiveTabId(tabId); },
+      },
+    });
   };
 
   // 탭 순서 이동(±1)
@@ -471,7 +482,7 @@ const Notes = () => {
                       onClick={() => setActiveTag(null)}
                       className={cn(
                         'inline-flex items-center rounded-full px-2.5 py-1 text-[12px] font-medium transition-colors',
-                        activeTag === null ? 'bg-primary text-primary-foreground' : 'bg-white text-[#4d5563] hover:bg-white/70 dark:bg-white/10 dark:text-foreground/70',
+                        activeTag === null ? 'bg-[#4f86e0] text-white' : 'bg-white text-[#4d5563] hover:bg-white/70 dark:bg-white/10 dark:text-foreground/70',
                       )}
                     >
                       전체
@@ -482,7 +493,7 @@ const Notes = () => {
                         key={t}
                         className={cn(
                           'group/tg inline-flex items-center rounded-full text-[12px] font-medium transition-colors',
-                          activeTag === t ? 'bg-primary text-primary-foreground' : 'bg-white text-[#4d5563] hover:bg-white/70 dark:bg-white/10 dark:text-foreground/70',
+                          activeTag === t ? 'bg-[#4f86e0] text-white' : 'bg-white text-[#4d5563] hover:bg-white/70 dark:bg-white/10 dark:text-foreground/70',
                         )}
                       >
                         <button

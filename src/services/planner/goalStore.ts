@@ -81,6 +81,15 @@ export const goalStore = {
     safeWrite(MILESTONES_KEY, safeRead<PlannerMilestone>(MILESTONES_KEY).filter((milestone) => milestone.goalId !== id));
   },
 
+  /** 지운 목표를 마일스톤까지 그대로 되돌린다. id 를 유지하므로 작업의 goalId 재연결도 맞는다. */
+  restore(goal: PlannerGoal, milestones: PlannerMilestone[] = []): void {
+    const goals = safeRead<PlannerGoal>(GOALS_KEY);
+    if (!goals.some((g) => g.id === goal.id)) safeWrite(GOALS_KEY, [...goals, goal]);
+    const all = safeRead<PlannerMilestone>(MILESTONES_KEY);
+    const missing = milestones.filter((m) => !all.some((x) => x.id === m.id));
+    if (missing.length) safeWrite(MILESTONES_KEY, [...all, ...missing]);
+  },
+
   listMilestones(goalId?: string): PlannerMilestone[] {
     return safeRead<PlannerMilestone>(MILESTONES_KEY)
       .filter((milestone) => !goalId || milestone.goalId === goalId)

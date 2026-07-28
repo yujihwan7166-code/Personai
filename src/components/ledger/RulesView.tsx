@@ -10,6 +10,7 @@ import { ledgerStore, todayKey } from '@/services/ledgerStore';
 import { monthOf } from '@/lib/ledger/stats';
 import { BUCKET_META, type BudgetBucket } from '@/types/ledger';
 import { C } from './theme';
+import { notify } from '@/lib/notify';
 
 /** 메모에서 규칙 후보가 될 만한 낱말만. 숫자·한 글자·회차 표기 제외. */
 const wordsOf = (memo: string): string[] =>
@@ -80,7 +81,10 @@ export function RulesView({ data }: { data: LedgerData }) {
     const used = usage.get(id) ?? 0;
     if (used > 0 && !window.confirm(`"${label}"을 쓰는 내역 ${used}건이 '기타'로 옮겨져요. 금액과 날짜는 그대로예요. 삭제할까요?`)) return;
     const r = ledgerStore.removeCategory(id);
-    if (r) toast.success(r.moved > 0 ? `삭제 — 내역 ${r.moved}건은 기타로` : '삭제했어요');
+    if (!r) return;
+    notify.success(r.moved > 0 ? `"${label}" 삭제 — 내역 ${r.moved}건은 기타로` : `"${label}"을 지웠어요`, {
+      action: { label: '되돌리기', onClick: () => ledgerStore.restoreCategory(r.undo) },
+    });
   };
 
   const field: React.CSSProperties = {

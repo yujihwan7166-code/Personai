@@ -6,6 +6,7 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { Home, Award, BarChart3, Sparkles, Plus, Ticket, X, Compass, Bookmark } from 'lucide-react';
 import { toast } from 'sonner';
+import { notify } from '@/lib/notify';
 import { newId } from '@/lib/idGenerator';
 import {
   loadTickets, saveTickets, TICKETS_CHANGED, DEFAULT_ACCENT, ACCENT_OPTIONS,
@@ -127,13 +128,24 @@ export default function Tickets() {
     }
   };
 
+  /* 사진 원본은 바로 지우지 않는다 — 되돌리기 시간(8초)이 지난 뒤에 지운다.
+     먼저 지우면 되돌려도 사진 없는 티켓이 돌아온다. 되돌리면 예약을 취소한다.
+     (그 사이 창을 닫으면 원본이 남지만, 고아 사진은 다음 정리 때 쓸린다) */
   const handleDelete = (id: string) => {
     const t = entries.find((e) => e.id === id);
     if (!t || !window.confirm(`"${t.title}" 티켓을 삭제할까요?`)) return;
-    void deletePhotos(t.photoIds);
     setStore((s) => ({ ...s, entries: s.entries.filter((e) => e.id !== id) }));
     setDetailId(null);
-    toast('티켓을 버렸어요');
+    const purge = window.setTimeout(() => { void deletePhotos(t.photoIds); }, 8500);
+    notify.success('티켓을 버렸어요', {
+      action: {
+        label: '되돌리기',
+        onClick: () => {
+          window.clearTimeout(purge);
+          setStore((s) => ({ ...s, entries: [...s.entries, t] }));
+        },
+      },
+    });
   };
 
   const setAccent = (c: string) => setStore((s) => ({ ...s, accent: c }));
@@ -345,7 +357,7 @@ function Stat({ value, label, accent }: { value: string; label: string; accent?:
 
 function yearChip(active: boolean): CSSProperties {
   return {
-    height: 32, padding: '0 14px', borderRadius: 8, fontSize: 13, fontWeight: 700, whiteSpace: 'nowrap',
+    height: 36, padding: '0 18px', borderRadius: 999, fontSize: 14, fontWeight: 700, whiteSpace: 'nowrap',
     fontFamily: 'var(--tk-mono)', cursor: 'pointer',
     background: active ? 'var(--tk-accent)' : '#0b131f', color: active ? '#231907' : '#c3ccd9',
     border: `1px solid ${active ? 'var(--tk-accent)' : '#ffffff1c'}`,
@@ -362,12 +374,15 @@ function FilterMenu({ label, value, options, onChange }: {
   const current = options.find((o) => o.v === value);
   return (
     <div style={{ position: 'relative' }}>
+      {/* 드롭다운 여는 자리 — 아카이브의 필터 트리거와 같은 문법(옅은 틴트 + 색 테두리).
+          예전엔 앰버로 꽉 채워서, 여는 손잡이일 뿐인데 화면에서 제일 센 것이 되어 있었다.
+          꽉 채우는 건 '값을 직접 고르는 칩'의 몫이다. */}
       <button type="button" onClick={() => setOpen((o) => !o)} style={{
-        height: 34, display: 'inline-flex', alignItems: 'center', gap: 7, padding: '0 12px', borderRadius: 10,
+        height: 32, display: 'inline-flex', alignItems: 'center', gap: 7, padding: '0 12px', borderRadius: 9,
         fontSize: 13, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap',
-        background: active ? 'var(--tk-accent)' : '#101b30',
-        color: active ? '#231402' : '#c3ccd9',
-        border: `1px solid ${active ? 'var(--tk-accent)' : '#ffffff14'}`,
+        background: active ? 'color-mix(in srgb, var(--tk-accent) 14%, transparent)' : '#101b30',
+        color: active ? 'var(--tk-accent)' : '#c3ccd9',
+        border: `1px solid ${active ? 'color-mix(in srgb, var(--tk-accent) 45%, transparent)' : '#ffffff14'}`,
       }}>
         {active && current ? current.label : label}
         <span style={{ fontSize: 9, opacity: .7, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }}>▾</span>
@@ -375,7 +390,7 @@ function FilterMenu({ label, value, options, onChange }: {
       {open && (
         <>
           <div onClick={() => setOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 20 }} />
-          <div className="tk-scroll" style={{ position: 'absolute', top: 40, left: 0, zIndex: 21, minWidth: 156, maxHeight: 300, overflowY: 'auto', background: '#15213a', border: '1px solid #ffffff1a', borderRadius: 12, padding: 5, boxShadow: '0 18px 44px -12px rgba(0,0,0,.8)' }}>
+          <div className="tk-scroll" style={{ position: 'absolute', top: 38, left: 0, zIndex: 21, minWidth: 156, maxHeight: 300, overflowY: 'auto', background: '#15213a', border: '1px solid #ffffff1a', borderRadius: 12, padding: 5, boxShadow: '0 18px 44px -12px rgba(0,0,0,.8)' }}>
             {options.map((o) => {
               const on = o.v === value;
               return (
@@ -595,7 +610,7 @@ function RecapView({ entries, years, recapYear, setRecapYear, onOpen }: {
     <div style={{ animation: 'tk-fadeIn .35s', maxWidth: 1040 }}>
       <div style={{ display: 'flex', gap: 8, marginBottom: 22, flexWrap: 'wrap' }}>
         {(years.length ? years : [recapYear]).map((y) => (
-          <button key={y} type="button" onClick={() => setRecapYear(y)} style={{ ...yearChip(recapYear === y), height: 36, padding: '0 18px', fontSize: 14 }}>{y}년</button>
+          <button key={y} type="button" onClick={() => setRecapYear(y)} style={yearChip(recapYear === y)}>{y}년</button>
         ))}
       </div>
 

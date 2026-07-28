@@ -280,14 +280,31 @@ export const archiveStore = {
     this.updateItem(id, { collectionId });
   },
 
-  /** 항목 삭제 — 첨부 blob 도 함께 정리 (고아 방지). */
-  removeItem(id: string): void {
+  /**
+   * 항목 삭제 — 첨부 blob 도 함께 정리 (고아 방지).
+   * keepBlobs 를 주면 파일은 남긴다. 되돌리기를 걸어둔 쪽에서 시간이 지난 뒤 직접 지운다.
+   * 지운 항목을 돌려주므로 restoreItem 에 그대로 넘기면 된다.
+   */
+  removeItem(id: string, opts: { keepBlobs?: boolean } = {}): ArchiveItem | undefined {
     const all = readItems();
     const target = all.find((e) => e.id === id);
     /* 첨부가 여럿이 된 뒤로 blobRef 하나만 지우면 나머지가 IndexedDB 에 남는다 —
        화면 어디에서도 못 보는 파일이 용량만 먹는다. 목록 전체를 지운다. */
-    if (target) for (const a of itemAttachments(target)) void deleteArchiveBlob(a.ref);
+    if (target && !opts.keepBlobs) for (const a of itemAttachments(target)) void deleteArchiveBlob(a.ref);
     safeWrite(all.filter((e) => e.id !== id), null);
+    return target;
+  },
+
+  /** 지운 항목을 그대로 되돌린다 — id 유지. blob 을 남겨뒀다면 첨부까지 살아난다. */
+  restoreItem(item: ArchiveItem): void {
+    const all = readItems();
+    if (all.some((e) => e.id === item.id)) return;
+    safeWrite([item, ...all], null);
+  },
+
+  /** 되돌리기 시간이 지난 뒤 미뤄둔 첨부 원본을 정리한다. */
+  purgeBlobsOf(item: ArchiveItem): void {
+    for (const a of itemAttachments(item)) void deleteArchiveBlob(a.ref);
   },
 
   addCollection(name: string, emoji?: string): ArchiveCollection {
@@ -325,16 +342,30 @@ export const archiveStore = {
   },
 
   /** 컬렉션 삭제 — 안의 항목은 '기타'로 옮기고 제거. ('기타' 자체는 못 지움) */
-  removeCollectionReassign(id: string): void {
+  removeCollectionReassign(id: string): { collection: ArchiveCollection; itemIds: string[] } | undefined {
     const target = readCollections().find((c) => c.id === id);
-    if (!target || target.builtinKey === FALLBACK_COLLECTION_KEY) return;
+    if (!target || target.builtinKey === FALLBACK_COLLECTION_KEY) return undefined;
     const fallbackId = this.fallbackCollectionId(); // '기타' 없으면 생성
-    if (fallbackId === id) return;
-    const items = readItems().map((it) =>
+    if (fallbackId === id) return undefined;
+    const before = readItems();
+    const moved = before.filter((it) => it.collectionId === id).map((it) => it.id);
+    const items = before.map((it) =>
       it.collectionId === id ? { ...it, collectionId: fallbackId, updatedAt: nowIso() } : it,
     );
     const cols = readCollections().filter((c) => c.id !== id);
     safeWrite(items, cols);
+    return { collection: target, itemIds: moved };
+  },
+
+  /** removeCollectionReassign 되돌리기 — 컬렉션을 되살리고 '기타'로 옮겼던 항목을 제자리로. */
+  restoreCollection(undo: { collection: ArchiveCollection; itemIds: string[] }): void {
+    const cols = readCollections();
+    const nextCols = cols.some((c) => c.id === undo.collection.id) ? cols : [...cols, undo.collection];
+    const ids = new Set(undo.itemIds);
+    const items = readItems().map((it) =>
+      ids.has(it.id) ? { ...it, collectionId: undo.collection.id, updatedAt: nowIso() } : it,
+    );
+    safeWrite(items, nextCols);
   },
 
   /** 전체 삭제 (리셋용) — IndexedDB 첨부 원본까지 함께 비운다. */

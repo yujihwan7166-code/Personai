@@ -132,7 +132,10 @@ describe('카테고리 만들기·지우기', () => {
     expect(ledgerStore.categoryUsage(c.id)).toBe(1);
 
     const r = ledgerStore.removeCategory(c.id);
-    expect(r).toEqual({ moved: 1 });
+    expect(r?.moved).toBe(1);
+    // 되돌리기 스냅샷 — 옮겨간 내역의 id 를 들고 있어야 제자리로 돌릴 수 있다
+    expect(r?.undo.category.id).toBe(c.id);
+    expect(r?.undo.entryIds).toHaveLength(1);
     const list = ledgerStore.listEntries();
     expect(list).toHaveLength(2);                                    // 삭제되지 않음
     const moved = list.find((e) => e.memo === '사료')!;
@@ -140,6 +143,42 @@ describe('카테고리 만들기·지우기', () => {
     expect(moved.amount).toBe(30000);                                // 금액·날짜 보존
     expect(moved.date).toBe('2026-07-10');
     expect(ledgerStore.listCategories().some((x) => x.id === c.id)).toBe(false);
+  });
+
+  it('restoreCategory — 지운 카테고리를 되돌리면 내역·규칙·한도가 제자리로', () => {
+    const c = ledgerStore.addCategory('반려동물', '🐶', 'variable')!;
+    ledgerStore.setKeywordRule('사료', c.id);
+    ledgerStore.setCatBudget(c.id, 50000);
+    ledgerStore.addEntries([
+      { type: 'expense', amount: 30000, date: '2026-07-10', categoryId: c.id, memo: '사료' },
+    ]);
+
+    const r = ledgerStore.removeCategory(c.id)!;
+    expect(ledgerStore.listEntries()[0].categoryId).toBe('etc');
+    expect(ledgerStore.getKeywordDict()['사료']).toBeUndefined();
+    expect(ledgerStore.getCatBudgets()[c.id]).toBeUndefined();
+
+    ledgerStore.restoreCategory(r.undo);
+    expect(ledgerStore.listCategories().some((x) => x.id === c.id)).toBe(true);
+    expect(ledgerStore.listEntries()[0].categoryId).toBe(c.id);
+    expect(ledgerStore.getKeywordDict()['사료']).toBe(c.id);
+    expect(ledgerStore.getCatBudgets()[c.id]).toBe(50000);
+  });
+
+  it('removeBucket / restoreBucket — 지운 예산을 되돌리면 카테고리·한도가 제자리로', () => {
+    const b = ledgerStore.addBucket('여행', '')!;
+    const c = ledgerStore.addCategory('항공', '✈️', 'variable')!;
+    ledgerStore.setCategoryBucket(c.id, b.id);
+    ledgerStore.setBudgets({ [b.id]: 400000 });
+
+    const undo = ledgerStore.removeBucket(b.id)!;
+    expect(ledgerStore.listBuckets().some((x) => x.id === b.id)).toBe(false);
+    expect(ledgerStore.getBudgets()[b.id]).toBeUndefined();
+
+    ledgerStore.restoreBucket(undo);
+    expect(ledgerStore.listBuckets().some((x) => x.id === b.id)).toBe(true);
+    expect(ledgerStore.getBudgets()[b.id]).toBe(400000);
+    expect(ledgerStore.listCategories().find((x) => x.id === c.id)?.bucket).toBe(b.id);
   });
 
   it('삭제 시 그 카테고리를 가리키던 분류 규칙·고정지출도 정리된다', () => {
