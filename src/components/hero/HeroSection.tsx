@@ -42,6 +42,7 @@ import { HeroInput } from './HeroInput';
 import { AiPickerSheet } from './AiPickerSheet';
 import { CustomAiCreatorSheet } from './CustomAiCreatorSheet';
 import { BrandLogo } from './BrandLogo';
+import { MakerCard } from './MakerCard';
 import { ModelPickerButton, type HeroPickerMode } from './ModelPickerButton';
 import { TodayCluster } from './TodayCluster';
 import { TodayStrip } from './TodayStrip';
@@ -206,7 +207,26 @@ export function HeroSection({
   };
 
   // AI 클릭 → armed 검색·비서 모드 해제 (상호 배타).
+  /* 숨겨둔 명함 — GPT 를 연달아 다섯 번 고르면 열린다.
+     '연달아' 로 세는 이유: GPT 는 기본값이라 오가다 보면 총 다섯 번은 금방 넘는다.
+     사이에 다른 AI 를 고르면 0으로 돌아가야 '일부러 눌렀다' 가 된다.
+     시간 제한(2.5초)도 둔다 — 오늘 아침에 두 번, 저녁에 세 번은 우연이다. */
+  const gptTapsRef = useRef(0);
+  const gptLastRef = useRef(0);
+  const [showMaker, setShowMaker] = useState(false);
+
   const handleSelectBrand = (b: BrandId) => {
+    if (b === 'gpt') {
+      const now = Date.now();
+      gptTapsRef.current = now - gptLastRef.current < 2500 ? gptTapsRef.current + 1 : 1;
+      gptLastRef.current = now;
+      if (gptTapsRef.current >= 5) {
+        gptTapsRef.current = 0;
+        setShowMaker(true);
+      }
+    } else {
+      gptTapsRef.current = 0;
+    }
     setBrand(b);
     if (armed) disarm();
     if (secretaryMode) setSecretaryMode(false);
@@ -545,6 +565,7 @@ export function HeroSection({
       // 비서 모드 > 검색 armed > AI 브랜드 순 우선순위.
       data-brand={secretaryMode ? 'secretary' : isSearchArmed ? armedChip!.id : brand}
     >
+      {showMaker && <MakerCard onClose={() => setShowMaker(false)} />}
       {/* 살아있는 배경 — 브랜드 accent glow 가 천천히 떠다님. */}
       <div className="hero-living-glow" aria-hidden />
 
